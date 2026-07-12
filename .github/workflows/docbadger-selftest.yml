@@ -1,0 +1,23 @@
+name: DocBadger Self-Test
+
+on:
+  pull_request:
+    paths:
+      - "fixtures/**/*.py"
+
+jobs:
+  doc-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run DocBadger
+        uses: ./
+        with:
+          llm_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          model: openai/gpt-4o
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

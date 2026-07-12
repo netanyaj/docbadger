@@ -1,0 +1,39 @@
+name: "DocBadger"
+description: "Detects documentation made stale by code changes and flags it on the PR."
+branding:
+  icon: "book-open"
+  color: "orange"
+
+inputs:
+  llm_api_key:
+    description: "API key for the LLM provider (via OpenRouter)"
+    required: true
+  model:
+    description: "OpenRouter model slug to use, e.g. openai/gpt-4o"
+    required: false
+    default: "openai/gpt-4o"
+  docs_path:
+    description: "Restrict doc scanning to this path (default: repo root)"
+    required: false
+    default: "."
+  fail_mode:
+    description: "'open' (never blocks PR on internal failure) or 'closed' (blocks)"
+    required: false
+    default: "open"
+
+outputs:
+  meaningful_changes_found:
+    description: "Count of meaningful code changes detected in this PR"
+  known_links_checked:
+    description: "Count of changes that had a known doc link and were checked"
+  stale_sections_found:
+    description: "Count of sections the verifier judged stale"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    LLM_API_KEY: ${{ inputs.llm_api_key }}
+    LLM_MODEL: ${{ inputs.model }}
+    DOCS_PATH: ${{ inputs.docs_path }}
+    FAIL_MODE: ${{ inputs.fail_mode }}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "obvious_stale_signature",
+    "old_code": "def send_email(to, subject, body):\n    \"\"\"Send an email. Does not retry on failure.\"\"\"\n    smtp_client.send(to, subject, body)",
+    "new_code": "def send_email(to, subject, body, retries=3):\n    \"\"\"Send an email, retrying up to `retries` times on failure.\"\"\"\n    for attempt in range(retries):\n        try:\n            smtp_client.send(to, subject, body)\n            return\n        except SendError:\n            continue",
+    "doc_section": "## Sending Emails\nCall `send_email(to, subject, body)` to send an email. If sending fails, it will not retry — you must handle retries yourself.",
+    "expected_label": "stale",
+    "why": "Doc explicitly contradicts new retry behavior."
+  },
+  {
+    "id": "obvious_fine_internal_refactor",
+    "old_code": "def calculate_total(items):\n    total = 0\n    for item in items:\n        total += item.price\n    return total",
+    "new_code": "def calculate_total(items):\n    return sum(item.price for item in items)",
+    "doc_section": "## Calculating Totals\n`calculate_total(items)` returns the sum of all item prices in the list.",
+    "expected_label": "not_stale",
+    "why": "Internal refactor only, no behavior or signature change visible to doc."
+  },
+  {
+    "id": "obvious_stale_removed_param",
+    "old_code": "def create_user(name, email, is_admin=False):\n    \"\"\"Create a user, optionally as an admin.\"\"\"\n    ...",
+    "new_code": "def create_user(name, email):\n    \"\"\"Create a user. Admin creation now requires a separate promote_to_admin call.\"\"\"\n    ...",
+    "doc_section": "## Creating Users\nUse `create_user(name, email, is_admin=False)` to create a user. Pass `is_admin=True` to create an admin directly.",
+    "expected_label": "stale",
+    "why": "Parameter removed entirely; documented usage would now raise a TypeError."
+  },
+  {
+    "id": "ambiguous_default_value_change",
+    "old_code": "def fetch_items(page_size=20):\n    ...",
+    "new_code": "def fetch_items(page_size=50):\n    ...",
+    "doc_section": "## Fetching Items\n`fetch_items()` returns a page of items. By default, results are paginated in batches.",
+    "expected_label": "ambiguous",
+    "why": "Doc doesn't mention the specific default number, so technically still accurate, but arguably incomplete now. Good test of over-flagging tendency."
+  },
+  {
+    "id": "ambiguous_behavior_described_without_naming_function",
+    "old_code": "def process_payment(order):\n    charge_card(order.card, order.total)\n    return Receipt(order)",
+    "new_code": "def process_payment(order):\n    if order.total > FRAUD_THRESHOLD:\n        flag_for_review(order)\n        return None\n    charge_card(order.card, order.total)\n    return Receipt(order)",
+    "doc_section": "## Payments\nWhen an order is processed, a receipt is generated immediately after the card is charged.",
+    "expected_label": "stale",
+    "why": "Doc no longer holds for high-value orders (no receipt if flagged for review). Section never names process_payment directly \u2014 tests embedding-fallback-style reasoning even in this pre-linking spike."
+  },
+  {
+    "id": "obvious_fine_test_only_change",
+    "old_code": "def test_calculate_total():\n    assert calculate_total([]) == 0",
+    "new_code": "def test_calculate_total():\n    assert calculate_total([]) == 0\n    assert calculate_total([Item(10)]) == 10",
+    "doc_section": "## Calculating Totals\n`calculate_total(items)` returns the sum of all item prices in the list.",
+    "expected_label": "not_stale",
+    "why": "Test-file change only \u2014 in the real pipeline this would be filtered before ever reaching the LLM (Milestone 2), but useful here to confirm the model itself doesn't over-flag irrelevant changes."
+  }
+]
