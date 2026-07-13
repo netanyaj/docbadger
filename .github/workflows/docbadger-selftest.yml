@@ -3,7 +3,11 @@ name: DocBadger Self-Test
 on:
   pull_request:
     paths:
-      - "fixtures/**/*.py"
+      - "fixtures/**"
+      - "src/**"
+      - "action.yml"
+      - "Dockerfile"
+  workflow_dispatch:
 
 jobs:
   doc-check:
