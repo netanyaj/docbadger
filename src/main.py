@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 
-from github import Github
+from github import Auth, Github
 
 sys.path.insert(0, os.path.dirname(__file__))
 from diff_analyzer import get_modified_functions
@@ -131,7 +131,7 @@ def main():
     github_token = os.environ.get("GITHUB_TOKEN")
     if github_token:
         try:
-            gh = Github(github_token)
+            gh = Github(auth=Auth.Token(github_token))
             repo = gh.get_repo(repo_full_name)
             pull = repo.get_pull(pr_number)
             pull.create_issue_comment(comment_body)

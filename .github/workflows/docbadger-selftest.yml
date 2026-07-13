@@ -8,6 +8,14 @@ on:
       - "action.yml"
       - "Dockerfile"
   workflow_dispatch:
+<<<<<<< Updated upstream
+=======
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+>>>>>>> Stashed changes
 
 jobs:
   doc-check:
