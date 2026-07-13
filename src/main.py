@@ -7,6 +7,7 @@ generation yet (Milestone 4), no real linking yet (Milestone 3).
 
 import json
 import os
+import subprocess
 import sys
 
 from github import Github
@@ -37,6 +38,14 @@ def _set_output(name: str, value) -> None:
 
 
 def main():
+    # Docker actions run as a different user than the one that checked out
+    # the repo, which modern git treats as "dubious ownership" and refuses
+    # to operate on by default. Without this, every git command below fails.
+    subprocess.run(
+        ["git", "config", "--global", "--add", "safe.directory", "*"],
+        check=False,
+    )
+
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
         _fail("GITHUB_EVENT_PATH not set — not running inside a pull_request event?")

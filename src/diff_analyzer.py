@@ -35,11 +35,30 @@ def _run_git(*args: str) -> str:
         raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout
 
+def _ensure_commit_available(sha: str) -> None:
+    """Defensive guard: don't assume fetch-depth/checkout config always leaves
+    every needed commit locally reachable. If it's missing, fetch it directly
+    by SHA before we try to diff against it."""
+    check = subprocess.run(
+        ["git", "cat-file", "-e", f"{sha}^{{commit}}"],
+        capture_output=True,
+    )
+    if check.returncode != 0:
+        fetch = subprocess.run(
+            ["git", "fetch", "--depth=1", "origin", sha],
+            capture_output=True, text=True,
+        )
+        if fetch.returncode != 0:
+            raise RuntimeError(
+                f"Commit {sha} not found locally and could not be fetched: "
+                f"{fetch.stderr.strip()}"
+            )
 
 def _changed_python_files(base_sha: str, head_sha: str) -> list[str]:
+    _ensure_commit_available(base_sha)
+    _ensure_commit_available(head_sha)
     output = _run_git("diff", "--name-only", f"{base_sha}..{head_sha}", "--", "*.py")
     return [line.strip() for line in output.splitlines() if line.strip()]
-
 
 def _file_at_revision(sha: str, filepath: str) -> Optional[str]:
     """Returns file content at a given commit, or None if it didn't exist there."""
