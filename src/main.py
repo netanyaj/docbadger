@@ -17,6 +17,7 @@ from diff_analyzer import get_modified_functions
 from change_filter import filter_meaningful
 from link_map import load_link_map, get_doc_section
 from verifier import judge_staleness
+from comment_builder import build_comment
 
 
 def _fail(message: str) -> None:
@@ -96,36 +97,7 @@ def main():
     _set_output("known_links_checked", len(checked_results))
     _set_output("stale_sections_found", stale_count)
 
-    comment_lines = [
-        "## DocBadger Doc Check",
-        "",
-        f"- Meaningful code changes detected: **{len(meaningful)}**",
-        f"- Changes with a known doc link checked: **{len(checked_results)}**",
-        f"- Sections flagged as stale: **{stale_count}**",
-    ]
-    if error_count:
-        comment_lines.append(f"- Checks that could not complete: **{error_count}** (see logs)")
-    comment_lines.append("")
-
-    if not checked_results:
-        comment_lines.append(
-            "_No changed functions matched a known documentation link this run. "
-            "Real repo-wide linking arrives in a future milestone — this run only "
-            "checks the fixture link configured for testing._"
-        )
-    else:
-        for fn, heading, verdict in checked_results:
-            if verdict["stale"] is True:
-                comment_lines.append(f"### ⚠️ Possibly stale: `{fn.qualified_id}` → \"{heading}\"")
-                comment_lines.append(f"{verdict['diagnosis']}")
-            elif verdict["stale"] is False:
-                comment_lines.append(f"### ✅ Verified accurate: `{fn.qualified_id}` → \"{heading}\"")
-            else:
-                comment_lines.append(f"### ⚠️ Check incomplete: `{fn.qualified_id}` → \"{heading}\"")
-                comment_lines.append(f"{verdict['diagnosis']}")
-            comment_lines.append("")
-
-    comment_body = "\n".join(comment_lines)
+    comment_body = build_comment(len(meaningful), checked_results, error_count)
     print(comment_body)
 
     github_token = os.environ.get("GITHUB_TOKEN")

@@ -10,12 +10,16 @@ on its own — currently, test files.
 
 from diff_analyzer import ModifiedFunction
 
-_TEST_FILE_MARKERS = ("test_", "/tests/", "\\tests\\")
-
 
 def is_meaningful(fn: ModifiedFunction) -> bool:
-    lowered = fn.filepath.lower()
-    if any(marker in lowered for marker in _TEST_FILE_MARKERS):
+    normalized = fn.filepath.replace("\\", "/")
+    segments = normalized.split("/")
+    directories = segments[:-1]
+    filename = segments[-1].lower()
+
+    if any(d.lower() in ("test", "tests") for d in directories):
+        return False
+    if filename.startswith("test_"):
         return False
     return True
 
