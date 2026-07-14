@@ -19,9 +19,9 @@ def build_comment(meaningful_count: int, checked_results: list, error_count: int
 
     if not checked_results:
         lines.append(
-            "_No changed functions matched a known documentation link this run. "
-            "Real repo-wide linking arrives in a future milestone — this run only "
-            "checks the fixture link configured for testing._"
+            "_No changed code was found to have a linked documentation section "
+            "this run — either nothing meaningful changed, or no doc section "
+            "currently references the changed code (by name or by meaning)._"
         )
     else:
         for fn, heading, verdict in checked_results:

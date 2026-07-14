@@ -1,6 +1,0 @@
-{
-  "fixtures/sample_module.py::send_email": {
-    "doc_file": "fixtures/docs/sample.md",
-    "doc_heading": "Sending Emails"
-  }
-}

@@ -20,7 +20,7 @@ def _fn():
 def test_no_checked_results_shows_no_link_message():
     comment = build_comment(meaningful_count=1, checked_results=[], error_count=0)
     assert "0" in comment  # "known link checked" count
-    assert "No changed functions matched a known documentation link" in comment
+    assert "linked documentation section" in comment
 
 
 def test_stale_result_shown_with_warning():

@@ -15,7 +15,7 @@ from github import Auth, Github
 sys.path.insert(0, os.path.dirname(__file__))
 from diff_analyzer import get_modified_functions
 from change_filter import filter_meaningful
-from link_map import load_link_map, get_doc_section
+from indexer import build_index, get_linked_doc_sections
 from verifier import judge_staleness
 from comment_builder import build_comment
 
@@ -75,20 +75,18 @@ def main():
     meaningful = filter_meaningful(all_modified)
 
     try:
-        link_map = load_link_map()
-    except FileNotFoundError:
-        link_map = {}
+        index = build_index(root=".")
+    except Exception as e:
+        _fail(f"Indexing failed: {e}")
+        return
 
     checked_results = []  # list of (ModifiedFunction, doc_heading, verdict)
     for fn in meaningful:
-        link = link_map.get(fn.qualified_id)
-        if not link:
-            continue  # no known link yet — real linking arrives in Milestone 3
-        doc_section = get_doc_section(link["doc_file"], link["doc_heading"])
-        if doc_section is None:
-            continue
-        verdict = judge_staleness(fn.old_code, fn.new_code, doc_section, model)
-        checked_results.append((fn, link["doc_heading"], verdict))
+        linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
+        for section_id in linked_section_ids:
+            section = index["doc_sections"][section_id]
+            verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
+            checked_results.append((fn, section.heading_path, verdict))
 
     stale_count = sum(1 for _, _, v in checked_results if v["stale"] is True)
     error_count = sum(1 for _, _, v in checked_results if v["stale"] is None)
