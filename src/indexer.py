@@ -38,6 +38,30 @@ def load_initial_cache(root: str = ".") -> dict:
     return pull_index()
 
 
+def _is_ancestor_section(candidate_id: str, other_id: str, doc_sections: dict) -> bool:
+    """True if candidate_id's section is a strict ancestor (same file, a
+    heading-path prefix) of other_id's section — meaning candidate_id's
+    text fully contains other_id's, so linking to both is redundant."""
+    candidate = doc_sections[candidate_id]
+    other = doc_sections[other_id]
+    if candidate.filepath != other.filepath:
+        return False
+    return other.heading_path.startswith(candidate.heading_path + " > ")
+
+
+def _drop_ancestor_duplicates(section_ids: set, doc_sections: dict) -> set:
+    """Given a set of linked section IDs for one code chunk, drops any
+    section that is a strict ancestor of another section already in the
+    set — keeping only the most specific match per branch of the hierarchy."""
+    kept = set(section_ids)
+    for candidate_id in list(section_ids):
+        for other_id in section_ids:
+            if candidate_id != other_id and _is_ancestor_section(candidate_id, other_id, doc_sections):
+                kept.discard(candidate_id)
+                break
+    return kept
+
+
 def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool = True) -> dict:
     """Main entry point. Returns:
         {"code_chunks": {...}, "doc_sections": {...}, "links": {chunk_id: {section_id, ...}}}
@@ -72,6 +96,9 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
     combined_links: dict[str, set] = {cid: set(sections) for cid, sections in heuristic_links.items()}
     for cid, sections in embedding_links.items():
         combined_links.setdefault(cid, set()).update(sections)
+
+    for cid in combined_links:
+        combined_links[cid] = _drop_ancestor_duplicates(combined_links[cid], doc_sections)
 
     if persist:
         save_cache_to_file(os.path.join(root, LOCAL_CACHE_RELATIVE_PATH), running_cache)

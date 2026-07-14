@@ -44,11 +44,19 @@ def pull_index(remote: str = "origin", branch: str = INDEX_BRANCH, filename: str
         return {}
 
 
+def _ensure_git_identity() -> None:
+    """commit-tree (unlike hash-object/mktree) requires a committer identity
+    to create a commit object. Our container starts with none configured."""
+    subprocess.run(["git", "config", "--global", "user.email", "docbadger-bot@users.noreply.github.com"], check=False)
+    subprocess.run(["git", "config", "--global", "user.name", "DocBadger Bot"], check=False)
+
+
 def push_index(
     cache: dict, remote: str = "origin", branch: str = INDEX_BRANCH, filename: str = INDEX_FILENAME
 ) -> None:
     """Writes `cache` as a new commit on the index branch, without ever
     checking that branch out or touching the current working tree."""
+    _ensure_git_identity()
     content = json.dumps(cache, indent=2)
 
     blob_sha = _run(["hash-object", "-w", "--stdin"], input_text=content).stdout.strip()

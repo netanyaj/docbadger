@@ -81,6 +81,20 @@ def test_heuristic_link_found_via_backtick_mention():
     assert any("Emails" in s for s in sections)
 
 
+def test_ancestor_section_duplicates_are_dropped():
+    # DOC_FILE has a top-level "# Docs" heading wrapping both "## Payments"
+    # and "## Emails" — the same shape that caused the real duplicate-flag
+    # bug (a parent section's text contains its child's mentions too).
+    work_dir = _build_repo_with_fixtures_and_fake_origin()
+    index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=False)
+    sections = get_linked_doc_sections("payments.py::send_email", index)
+
+    # Should link ONLY to the specific "Docs > Emails" section, not also
+    # to the bare, all-containing "Docs" top-level section.
+    assert not any(s.endswith("::Docs") for s in sections)
+    assert any(s.endswith("Docs > Emails") for s in sections)
+
+
 def test_embedding_fallback_links_unnamed_behavior_match():
     work_dir = _build_repo_with_fixtures_and_fake_origin()
     index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=False)
