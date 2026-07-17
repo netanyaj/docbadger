@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from code_parser import CodeChunk
 from doc_parser import DocSection
-from heuristic_linker import build_heuristic_links, get_linked_sections
+from heuristic_linker import build_heuristic_links, build_heuristic_links_with_source, get_linked_sections
 
 
 def _code_chunk(id_, kind, name):
@@ -92,3 +92,38 @@ def test_multiple_sections_linking_to_same_chunk_are_aggregated():
         "docs/auth.md::Quickstart",
         "docs/auth.md::Reference",
     ]
+
+
+def test_exact_qualified_mention_is_labeled_exact():
+    code_chunks = {
+        "auth.py::AuthClient.login": _code_chunk("auth.py::AuthClient.login", "method", "AuthClient.login")
+    }
+    doc_sections = {
+        "docs/auth.md::Login": _doc_section("docs/auth.md::Login", ["AuthClient.login"])
+    }
+    detailed = build_heuristic_links_with_source(code_chunks, doc_sections)
+    assert detailed["auth.py::AuthClient.login"]["docs/auth.md::Login"] == "exact"
+
+
+def test_bare_leaf_mention_is_labeled_leaf():
+    code_chunks = {
+        "auth.py::AuthClient.login": _code_chunk("auth.py::AuthClient.login", "method", "AuthClient.login")
+    }
+    doc_sections = {
+        "docs/auth.md::Login": _doc_section("docs/auth.md::Login", ["login"])
+    }
+    detailed = build_heuristic_links_with_source(code_chunks, doc_sections)
+    assert detailed["auth.py::AuthClient.login"]["docs/auth.md::Login"] == "leaf"
+
+
+def test_backward_compatible_wrapper_still_matches_old_behavior():
+    # build_heuristic_links (the pre-existing interface) must still behave
+    # identically now that it's built on top of the new detailed function.
+    code_chunks = {
+        "a.py::ServiceA.login": _code_chunk("a.py::ServiceA.login", "method", "ServiceA.login"),
+    }
+    doc_sections = {
+        "docs/auth.md::Login": _doc_section("docs/auth.md::Login", ["login"])
+    }
+    links = build_heuristic_links(code_chunks, doc_sections)
+    assert get_linked_sections("a.py::ServiceA.login", links) == ["docs/auth.md::Login"]

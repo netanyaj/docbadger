@@ -14,7 +14,7 @@ from typing import Callable
 
 from code_parser import get_all_code_chunks
 from doc_parser import get_all_doc_sections
-from heuristic_linker import build_heuristic_links
+from heuristic_linker import build_heuristic_links_with_source
 from embedding_linker import find_embedding_links
 from embedding_cache import get_cached_or_embed, load_cache_from_file, save_cache_to_file
 from embedder import embed_texts
@@ -49,22 +49,32 @@ def _is_ancestor_section(candidate_id: str, other_id: str, doc_sections: dict) -
     return other.heading_path.startswith(candidate.heading_path + " > ")
 
 
-def _drop_ancestor_duplicates(section_ids: set, doc_sections: dict) -> set:
-    """Given a set of linked section IDs for one code chunk, drops any
-    section that is a strict ancestor of another section already in the
-    set — keeping only the most specific match per branch of the hierarchy."""
-    kept = set(section_ids)
+def _drop_ancestor_duplicates(section_source_map: dict, doc_sections: dict) -> dict:
+    """Given {section_id: source} for one code chunk, drops any section
+    that is a strict ancestor of another section already present — keeping
+    only the most specific match (and its source label) per branch of the
+    hierarchy."""
+    section_ids = set(section_source_map.keys())
+    kept_ids = set(section_ids)
     for candidate_id in list(section_ids):
         for other_id in section_ids:
             if candidate_id != other_id and _is_ancestor_section(candidate_id, other_id, doc_sections):
-                kept.discard(candidate_id)
+                kept_ids.discard(candidate_id)
                 break
-    return kept
+    return {sid: section_source_map[sid] for sid in kept_ids}
 
 
 def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool = True) -> dict:
     """Main entry point. Returns:
-        {"code_chunks": {...}, "doc_sections": {...}, "links": {chunk_id: {section_id, ...}}}
+        {"code_chunks": {...}, "doc_sections": {...},
+         "links": {chunk_id: {section_id: source_label, ...}}}
+
+    source_label is one of "exact", "leaf" (heuristic matches) or
+    "embedding" — used by the confidence rubric to weigh link certainty.
+    Per Decision (Milestone 4 kickoff): heuristic matches always outrank
+    embedding matches, so embedding links only ever fill in chunks the
+    heuristic stage found nothing for at all — they never compete for the
+    same chunk.
 
     embed_fn is injectable for testing (avoid real API calls); persist can
     be disabled for the same reason (avoid real git pushes in tests).
@@ -75,7 +85,7 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
     code_chunks = get_all_code_chunks(root)
     doc_sections = get_all_doc_sections(root)
 
-    heuristic_links = build_heuristic_links(code_chunks, doc_sections)
+    heuristic_links = build_heuristic_links_with_source(code_chunks, doc_sections)
 
     # Embedding fallback only runs for code chunks the heuristic stage found
     # nothing for — compared against ALL doc sections (Architecture Section 9).
@@ -93,12 +103,25 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
     if unlinked_code_chunks and doc_sections:
         embedding_links = find_embedding_links(unlinked_code_chunks, doc_sections, cached_embed_fn)
 
-    combined_links: dict[str, set] = {cid: set(sections) for cid, sections in heuristic_links.items()}
+    combined_links: dict[str, dict[str, str]] = {
+        cid: dict(sections) for cid, sections in heuristic_links.items()
+    }
     for cid, sections in embedding_links.items():
-        combined_links.setdefault(cid, set()).update(sections)
+        combined_links.setdefault(cid, {})
+        for sid in sections:
+            combined_links[cid].setdefault(sid, "embedding")
 
     for cid in combined_links:
         combined_links[cid] = _drop_ancestor_duplicates(combined_links[cid], doc_sections)
+
+    # Garbage-collect: drop any cache entry whose content hash no longer
+    # belongs to anything currently in the repo (deleted functions, rewritten
+    # docstrings, etc.) — without this, the cache grows with the repo's
+    # entire edit history instead of its current size.
+    live_hashes = {chunk.content_hash for chunk in code_chunks.values()} | {
+        section.content_hash for section in doc_sections.values()
+    }
+    running_cache = {h: v for h, v in running_cache.items() if h in live_hashes}
 
     if persist:
         save_cache_to_file(os.path.join(root, LOCAL_CACHE_RELATIVE_PATH), running_cache)
@@ -113,4 +136,11 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
 
 
 def get_linked_doc_sections(chunk_id: str, index: dict) -> list[str]:
-    return sorted(index["links"].get(chunk_id, []))
+    return sorted(index["links"].get(chunk_id, {}).keys())
+
+
+def get_link_sources(chunk_id: str, index: dict) -> dict[str, str]:
+    """Returns {section_id: source_label} for a chunk — the detail the
+    confidence rubric needs but get_linked_doc_sections deliberately hides
+    from simpler callers (like main.py) that only need the section list."""
+    return dict(index["links"].get(chunk_id, {}))

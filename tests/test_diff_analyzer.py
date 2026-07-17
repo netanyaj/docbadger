@@ -83,6 +83,70 @@ def test_detects_genuinely_modified_function():
     assert "send_email" in names, "expected send_email's signature/behavior change to be detected"
 
 
+def test_signature_change_is_classified_as_signature():
+    old_source = "def greet(name):\n    return f'Hello {name}'\n"
+    new_source = "def greet(name, formal=False):\n    return f'Hello {name}'\n"
+    repo_dir = tempfile.mkdtemp()
+    _run(repo_dir, "init", "-q")
+    _run(repo_dir, "config", "user.email", "test@example.com")
+    _run(repo_dir, "config", "user.name", "Test Runner")
+
+    path = os.path.join(repo_dir, "greet.py")
+    with open(path, "w") as f:
+        f.write(old_source)
+    _run(repo_dir, "add", ".")
+    _run(repo_dir, "commit", "-q", "-m", "v1")
+    base_sha = _run(repo_dir, "rev-parse", "HEAD")
+
+    with open(path, "w") as f:
+        f.write(new_source)
+    _run(repo_dir, "add", ".")
+    _run(repo_dir, "commit", "-q", "-m", "v2")
+    head_sha = _run(repo_dir, "rev-parse", "HEAD")
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(repo_dir)
+        modified = get_modified_functions(base_sha, head_sha)
+    finally:
+        os.chdir(original_cwd)
+
+    greet_fn = next(fn for fn in modified if fn.name == "greet")
+    assert greet_fn.change_type == "signature"
+
+
+def test_body_only_change_is_classified_as_body_only():
+    old_source = "def add(a, b):\n    total = a + b\n    return total\n"
+    new_source = "def add(a, b):\n    return a + b\n"
+    repo_dir = tempfile.mkdtemp()
+    _run(repo_dir, "init", "-q")
+    _run(repo_dir, "config", "user.email", "test@example.com")
+    _run(repo_dir, "config", "user.name", "Test Runner")
+
+    path = os.path.join(repo_dir, "add.py")
+    with open(path, "w") as f:
+        f.write(old_source)
+    _run(repo_dir, "add", ".")
+    _run(repo_dir, "commit", "-q", "-m", "v1")
+    base_sha = _run(repo_dir, "rev-parse", "HEAD")
+
+    with open(path, "w") as f:
+        f.write(new_source)
+    _run(repo_dir, "add", ".")
+    _run(repo_dir, "commit", "-q", "-m", "v2")
+    head_sha = _run(repo_dir, "rev-parse", "HEAD")
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(repo_dir)
+        modified = get_modified_functions(base_sha, head_sha)
+    finally:
+        os.chdir(original_cwd)
+
+    add_fn = next(fn for fn in modified if fn.name == "add")
+    assert add_fn.change_type == "body_only"
+
+
 def test_comment_only_change_is_not_detected():
     repo_dir, base_sha, head_sha = _build_temp_repo()
     original_cwd = os.getcwd()

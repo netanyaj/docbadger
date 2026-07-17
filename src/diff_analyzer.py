@@ -27,6 +27,7 @@ class ModifiedFunction:
     name: str
     old_code: str
     new_code: str
+    change_type: str = "body_only"  # "signature" | "body_only" — see _classify_change
 
 
 def _run_git(*args: str) -> str:
@@ -34,6 +35,7 @@ def _run_git(*args: str) -> str:
     if result.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr.strip()}")
     return result.stdout
+
 
 def _ensure_commit_available(sha: str) -> None:
     """Defensive guard: don't assume fetch-depth/checkout config always leaves
@@ -54,11 +56,13 @@ def _ensure_commit_available(sha: str) -> None:
                 f"{fetch.stderr.strip()}"
             )
 
+
 def _changed_python_files(base_sha: str, head_sha: str) -> list[str]:
     _ensure_commit_available(base_sha)
     _ensure_commit_available(head_sha)
     output = _run_git("diff", "--name-only", f"{base_sha}..{head_sha}", "--", "*.py")
     return [line.strip() for line in output.splitlines() if line.strip()]
+
 
 def _file_at_revision(sha: str, filepath: str) -> Optional[str]:
     """Returns file content at a given commit, or None if it didn't exist there."""
@@ -68,20 +72,26 @@ def _file_at_revision(sha: str, filepath: str) -> Optional[str]:
         return None
 
 
-def _extract_functions(source: str, filepath: str) -> dict[str, tuple[str, str]]:
-    """Parses source into {qualified_name: (ast_dump, source_segment)}.
+def _extract_functions(source: str, filepath: str) -> dict[str, tuple[str, str, str]]:
+    """Parses source into {qualified_name: (ast_dump, source_segment, args_dump)}.
+
+    args_dump is the AST dump of just the function's argument list, used
+    separately from the full-body dump to classify whether a change altered
+    the signature (params added/removed/renamed/reordered/default changed)
+    or only the body (same signature, different implementation).
 
     Covers module-level functions and methods within classes (one level of
     nesting) — sufficient for the fixture case and typical real-world code.
     """
     tree = ast.parse(source)
-    functions: dict[str, tuple[str, str]] = {}
+    functions: dict[str, tuple[str, str, str]] = {}
 
     for node in ast.iter_child_nodes(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             functions[node.name] = (
                 ast.dump(node, include_attributes=False),
                 ast.get_source_segment(source, node) or "",
+                ast.dump(node.args, include_attributes=False),
             )
         elif isinstance(node, ast.ClassDef):
             for child in ast.iter_child_nodes(node):
@@ -90,6 +100,7 @@ def _extract_functions(source: str, filepath: str) -> dict[str, tuple[str, str]]
                     functions[qualname] = (
                         ast.dump(child, include_attributes=False),
                         ast.get_source_segment(source, child) or "",
+                        ast.dump(child.args, include_attributes=False),
                     )
     return functions
 
@@ -114,10 +125,11 @@ def get_modified_functions(base_sha: str, head_sha: str) -> list[ModifiedFunctio
             # Malformed intermediate state — skip rather than crash the run.
             continue
 
-        for name, (new_dump, new_code) in new_functions.items():
+        for name, (new_dump, new_code, new_args_dump) in new_functions.items():
             if name in old_functions:
-                old_dump, old_code = old_functions[name]
+                old_dump, old_code, old_args_dump = old_functions[name]
                 if old_dump != new_dump:
+                    change_type = "signature" if old_args_dump != new_args_dump else "body_only"
                     modified.append(
                         ModifiedFunction(
                             qualified_id=f"{filepath}::{name}",
@@ -125,6 +137,7 @@ def get_modified_functions(base_sha: str, head_sha: str) -> list[ModifiedFunctio
                             name=name,
                             old_code=old_code,
                             new_code=new_code,
+                            change_type=change_type,
                         )
                     )
 

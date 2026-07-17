@@ -5,7 +5,7 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from indexer import build_index, get_linked_doc_sections
+from indexer import build_index, get_linked_doc_sections, get_link_sources
 
 CODE_FILE = '''def process_payment(order):
     if order.total > FRAUD_THRESHOLD:
@@ -117,6 +117,38 @@ def test_persist_true_writes_cache_and_pushes_to_backstop_branch():
     assert len(log.splitlines()) == 1  # one commit pushed to the backstop branch
 
 
+def test_cache_garbage_collects_orphaned_entries_when_content_changes():
+    import json
+
+    work_dir = _build_repo_with_fixtures_and_fake_origin()
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=True)
+        cache_path = os.path.join(work_dir, ".docbadger_cache", "embeddings.json")
+        with open(cache_path) as f:
+            first_cache = json.load(f)
+
+        # Change process_payment's code — it has no heuristic doc match, so
+        # it's the chunk that actually goes through embedding and gets
+        # cached. (send_email, by contrast, is resolved via heuristic
+        # matching and is never embedded/cached at all — modifying it
+        # wouldn't create anything to orphan.)
+        with open(os.path.join(work_dir, "payments.py")) as f:
+            content = f.read()
+        with open(os.path.join(work_dir, "payments.py"), "w") as f:
+            f.write(content.replace("order.total > FRAUD_THRESHOLD", "order.total > NEW_THRESHOLD"))
+
+        build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=True)
+        with open(cache_path) as f:
+            second_cache = json.load(f)
+    finally:
+        os.chdir(original_cwd)
+
+    orphaned = set(first_cache) - set(second_cache)
+    assert len(orphaned) > 0, "expected the old content hash to be garbage collected"
+
+
 def test_second_run_reuses_cache_and_skips_unchanged_embeddings():
     work_dir = _build_repo_with_fixtures_and_fake_origin()
     call_counts = {"n": 0}
@@ -139,3 +171,17 @@ def test_second_run_reuses_cache_and_skips_unchanged_embeddings():
 
     assert first_run_calls > 0
     assert second_run_calls == 0  # nothing changed — cache should cover everything
+
+
+def test_link_sources_are_labeled_correctly():
+    work_dir = _build_repo_with_fixtures_and_fake_origin()
+    index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=False)
+
+    # send_email is heuristically matched (doc backtick-references it directly).
+    email_sources = get_link_sources("payments.py::send_email", index)
+    assert set(email_sources.values()) == {"exact"}
+
+    # process_payment is never named in the doc — only reachable via the
+    # embedding fallback (see test_embedding_fallback_links_unnamed_behavior_match).
+    payment_sources = get_link_sources("payments.py::process_payment", index)
+    assert set(payment_sources.values()) == {"embedding"}
