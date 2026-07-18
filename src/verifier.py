@@ -54,13 +54,17 @@ def _build_client() -> OpenAI:
     return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
 
 
-def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str) -> dict:
+def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, client=None) -> dict:
     """Returns {"stale": bool|None, "diagnosis": str}.
 
     stale=None signals a failure (LLM error or unparseable response) — the
     caller is responsible for fail-open handling, this function never raises.
+
+    `client` is optional and exists purely for test injection — production
+    callers should omit it and let this build its own client. Same pattern
+    used by corrector.generate_correction.
     """
-    client = _build_client()
+    client = client or _build_client()
     user_prompt = USER_PROMPT_TEMPLATE.format(
         old_code=old_code, new_code=new_code, doc_section=doc_section
     )
