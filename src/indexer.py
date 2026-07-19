@@ -27,14 +27,27 @@ def _content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def load_initial_cache(root: str = ".") -> dict:
+def load_initial_cache(root: str = ".", persist: bool = True) -> dict:
     """Precedence, per Architecture Section 5: local file (populated by an
     Actions cache restore step, if configured) first; the durable branch
-    backstop second; empty (full rebuild) if both are unavailable."""
+    backstop second; empty (full rebuild) if both are unavailable.
+
+    persist=False means "don't touch real infra at all" for tests — this
+    must apply symmetrically to both ends of the cache, not just the save
+    at the end of build_index(). Before this fix, persist=False still let
+    a real `git fetch` against the real docbadger/index branch happen here,
+    silently defeating any injected fake embed_fn whenever that branch
+    already had a real cached vector for the exact same content hash
+    (discovered via test_stale_doc_reference_produces_no_link_not_a_crash
+    intermittently/reproducibly failing depending on the real branch's
+    contents at test time, unrelated to anything the test itself controls).
+    """
     cache_path = os.path.join(root, LOCAL_CACHE_RELATIVE_PATH)
     cache = load_cache_from_file(cache_path)
     if cache:
         return cache
+    if not persist:
+        return {}
     return pull_index()
 
 
@@ -79,7 +92,7 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
     embed_fn is injectable for testing (avoid real API calls); persist can
     be disabled for the same reason (avoid real git pushes in tests).
     """
-    cache = load_initial_cache(root)
+    cache = load_initial_cache(root, persist=persist)
     running_cache = dict(cache)
 
     code_chunks = get_all_code_chunks(root)

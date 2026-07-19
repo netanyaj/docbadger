@@ -28,6 +28,8 @@ outputs:
     description: "Count of changes that had a known doc link and were checked"
   stale_sections_found:
     description: "Count of sections the verifier judged stale"
+  corrections_proposed:
+    description: "Count of corrections that passed validation and are shown as ready-to-apply in the summary comment"
 
 runs:
   using: "docker"

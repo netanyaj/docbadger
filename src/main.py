@@ -1,8 +1,14 @@
 """
-Main entry point for the DocBadger GitHub Action, Milestone 2 scope:
-real diff parsing + deterministic filtering + a hardcoded link lookup +
-LLM staleness verification + one summary PR comment. No correction
-generation yet (Milestone 4), no real linking yet (Milestone 3).
+Main entry point for the DocBadger GitHub Action. Full Milestone 4 pipeline:
+real diff parsing, deterministic filtering, real repo-wide linking, LLM
+staleness verification, deterministic confidence tiering, LLM-drafted
+corrections (Medium/High tier only) with independent validation, all
+surfaced in a single summary comment on the PR that triggered the run.
+
+v1 scope, confirmed explicitly with the user: comment-only. DocBadger never
+creates a branch or opens a PR of its own — even an approved, validated
+correction is shown as a ready-to-apply suggestion in this same comment,
+never pushed anywhere.
 """
 
 import json
@@ -17,7 +23,11 @@ from diff_analyzer import get_modified_functions
 from change_filter import filter_meaningful
 from indexer import build_index, get_linked_doc_sections
 from verifier import judge_staleness
-from comment_builder import build_comment
+from confidence_rubric import score_confidence_for_link
+from corrector import generate_correction, CorrectionStatus
+from validator import validate_correction
+from output_orchestrator import PipelineFinding, build_orchestration_plan
+from comment_builder import build_final_comment
 
 
 def _fail(message: str) -> None:
@@ -80,25 +90,82 @@ def main():
         _fail(f"Indexing failed: {e}")
         return
 
-    checked_results = []  # list of (ModifiedFunction, doc_heading, verdict)
+    findings = []  # list of PipelineFinding
     for fn in meaningful:
         linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
         for section_id in linked_section_ids:
             section = index["doc_sections"][section_id]
             verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
-            checked_results.append((fn, section.heading_path, verdict))
 
-    stale_count = sum(1 for _, _, v in checked_results if v["stale"] is True)
-    error_count = sum(1 for _, _, v in checked_results if v["stale"] is None)
+            if verdict["stale"] is not True:
+                # False (verified accurate) or None (verifier error) — nothing
+                # further to do for this link; record and move on.
+                findings.append(PipelineFinding(
+                    filepath=section.filepath,
+                    qualified_id=fn.qualified_id,
+                    heading_path=section.heading_path,
+                    stale=verdict["stale"],
+                    diagnosis=verdict["diagnosis"],
+                ))
+                continue
+
+            confidence = score_confidence_for_link(fn, section_id, index)
+
+            if confidence.tier == "low":
+                # Corrector deliberately not called for Low-tier findings —
+                # see Engineering Decision Log Entry 23.
+                findings.append(PipelineFinding(
+                    filepath=section.filepath,
+                    qualified_id=fn.qualified_id,
+                    heading_path=section.heading_path,
+                    stale=True,
+                    diagnosis=verdict["diagnosis"],
+                    tier=confidence.tier,
+                ))
+                continue
+
+            corrector_result = generate_correction(
+                diagnosis=verdict["diagnosis"],
+                new_code=fn.new_code,
+                doc_section=section.text,
+                model=model,
+            )
+
+            validator_result = None
+            if corrector_result.status == CorrectionStatus.PROPOSED:
+                validator_result = validate_correction(
+                    new_code=fn.new_code,
+                    doc_section=section.text,
+                    old_text=corrector_result.old_text,
+                    new_text=corrector_result.new_text,
+                    model=model,
+                )
+
+            findings.append(PipelineFinding(
+                filepath=section.filepath,
+                qualified_id=fn.qualified_id,
+                heading_path=section.heading_path,
+                stale=True,
+                diagnosis=verdict["diagnosis"],
+                tier=confidence.tier,
+                corrector_result=corrector_result,
+                validator_result=validator_result,
+            ))
+
+    plan = build_orchestration_plan(findings)
+
+    stale_count = sum(1 for f in findings if f.stale is True)
+    error_count = sum(1 for f in findings if f.stale is None)
 
     _set_output("meaningful_changes_found", len(meaningful))
-    _set_output("known_links_checked", len(checked_results))
+    _set_output("known_links_checked", len(findings))
     _set_output("stale_sections_found", stale_count)
-
-    comment_body = build_comment(len(meaningful), checked_results, error_count)
-    print(comment_body)
+    _set_output("corrections_proposed", sum(1 for e in plan.comment_entries if e.kind == "correction_ready"))
 
     github_token = os.environ.get("GITHUB_TOKEN")
+    comment_body = build_final_comment(len(meaningful), plan.comment_entries, error_count)
+    print(comment_body)
+
     if github_token:
         try:
             gh = Github(auth=Auth.Token(github_token))
