@@ -8,9 +8,13 @@ Decision Log Entry 23) — Low-tier findings are filtered out by the caller,
 never reaching this module, which is why generate_correction() doesn't take
 a confidence argument at all.
 
-Design contract (Engineering Decision Log Entries 23-26):
+Design contract (Engineering Decision Log Entries 23-26, 38):
   - Output is a structured span-patch (old_text/new_text), not a freeform rewrite.
-  - old_text MUST be an exact, locatable substring of doc_section.
+  - old_text MUST correspond to real, existing text in doc_section — located via
+    _locate_verbatim_span, which tolerates whitespace/dash/quote normalization
+    a model commonly introduces while "quoting" prose (e.g. collapsing a
+    mid-sentence line-wrap into a space), but never invents or approximates
+    content: the span returned always comes from doc_section itself.
   - Three distinct non-success outcomes, tracked separately rather than
     collapsed into one generic "failed" bucket (same discipline already
     applied to Entries 13/14's bug-type distinction):
@@ -25,11 +29,56 @@ Design contract (Engineering Decision Log Entries 23-26):
 """
 
 import json
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
 from verifier import _build_client
+
+
+# Characters models routinely normalize away when "quoting" prose — a
+# mid-sentence line-wrap becomes a space, an em/en dash becomes a hyphen,
+# curly quotes become straight ones. None of this changes the *content* of
+# the text, only its literal encoding, so tolerating it doesn't weaken the
+# "old_text must be real, existing text" guarantee — the span returned by
+# _locate_verbatim_span is always pulled from doc_section itself, never
+# reconstructed from the model's version of it.
+_DASH_CHARS = "-\u2010\u2011\u2012\u2013\u2014\u2015"  # hyphen, various dashes, em/en dash
+_QUOTE_PAIRS = [("'", "\u2018\u2019"), ('"', "\u201c\u201d")]
+
+
+def _locate_verbatim_span(candidate: str, doc_section: str) -> Optional[str]:
+    """Returns the actual substring of doc_section matching `candidate`, or
+    None if no reasonable match exists. Tries an exact match first (the
+    common case); falls back to a whitespace/dash/quote-tolerant regex
+    search so a real quote isn't rejected just because the model collapsed
+    a line-wrap into a space or swapped an em dash for a hyphen while
+    copying it. Always returns text taken from doc_section, never from
+    `candidate` itself.
+    """
+    if candidate in doc_section:
+        return candidate
+
+    tokens = re.split(r"(\s+)", candidate)
+    pattern_parts = []
+    for tok in tokens:
+        if tok == "":
+            continue
+        if tok.strip() == "":
+            pattern_parts.append(r"\s+")
+            continue
+        escaped = re.escape(tok)
+        for straight, curly in _QUOTE_PAIRS:
+            escaped = escaped.replace(re.escape(straight), f"[{re.escape(straight + curly)}]")
+        escaped = escaped.replace(re.escape("-"), f"[{re.escape(_DASH_CHARS)}]")
+        pattern_parts.append(escaped)
+
+    if not pattern_parts:
+        return None
+
+    match = re.search("".join(pattern_parts), doc_section)
+    return match.group(0) if match else None
 
 
 class CorrectionStatus(str, Enum):
@@ -187,12 +236,15 @@ def generate_correction(
                 rationale=data["rationale"],
             )
 
-        # status == proposed: verify old_text is actually verbatim in doc_section.
+        # status == proposed: verify old_text is actually verbatim in doc_section
+        # (tolerating whitespace/dash/quote normalization the model may have
+        # introduced while copying it — see _locate_verbatim_span).
         old_text = data["old_text"]
-        if old_text in doc_section:
+        located = _locate_verbatim_span(old_text, doc_section)
+        if located is not None:
             return CorrectorResult(
                 status=CorrectionStatus.PROPOSED,
-                old_text=old_text,
+                old_text=located,
                 new_text=data["new_text"],
                 rationale=data["rationale"],
             )

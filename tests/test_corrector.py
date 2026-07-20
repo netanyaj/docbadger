@@ -119,6 +119,48 @@ def test_mechanical_abstention_on_malformed_json_after_retry():
     assert client.call_count == 2
 
 
+def test_tolerates_line_wrap_and_em_dash_normalization_from_model():
+    # Real-world case: a mid-sentence line-wrap and an em dash in the actual
+    # doc, which the model "cleaned up" into a space and a hyphen when
+    # copying old_text — this used to abstain incorrectly.
+    doc_section = (
+        "Call `send_email(to, subject, body)` to send an email. If sending fails, it\n"
+        "will not retry — you must handle retries yourself."
+    )
+    old_text_from_model = (
+        "Call `send_email(to, subject, body)` to send an email. If sending fails, it "
+        "will not retry - you must handle retries yourself."
+    )
+    client = FakeOpenAIClient([_proposed_json(
+        old_text=old_text_from_model,
+        new_text="Call `send_email(to, subject, body, retries)` to send an email, retrying automatically the given number of times on failure.",
+    )])
+    result = generate_correction(
+        diagnosis="send_email() gained a retries parameter and now retries internally.",
+        new_code="def send_email(to, subject, body, retries):\n    smtp_client.send(to, subject, body, retries)",
+        doc_section=doc_section,
+        model="openai/gpt-4o",
+        client=client,
+    )
+    assert result.status == CorrectionStatus.PROPOSED
+    # The applied old_text is the REAL text (with the newline and em dash),
+    # not the model's normalized version — it must still be a true substring.
+    assert result.old_text in doc_section
+    assert "\n" in result.old_text
+    assert "\u2014" in result.old_text  # em dash preserved
+    assert client.call_count == 1  # no retry needed now
+
+
+def test_mechanical_abstention_still_fires_for_genuinely_unlocatable_text():
+    bad = _proposed_json(old_text="this text describes something that simply is not in the doc")
+    client = FakeOpenAIClient([bad, bad])
+    result = generate_correction(
+        diagnosis="d", new_code=NEW_CODE, doc_section=DOC_SECTION, model="openai/gpt-4o", client=client,
+    )
+    assert result.status == CorrectionStatus.ABSTAINED_MECHANICAL
+    assert client.call_count == 2
+
+
 def test_infra_failure_aborts_immediately_without_retry():
     client = FakeOpenAIClient([ConnectionError("simulated network failure")])
     result = generate_correction(
