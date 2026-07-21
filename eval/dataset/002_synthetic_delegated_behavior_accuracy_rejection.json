@@ -1,0 +1,20 @@
+{
+  "id": "002_synthetic_delegated_behavior_accuracy_rejection",
+  "source": {
+    "type": "synthetic",
+    "modeled_after": "A real self-test run on docbadger's own fixtures/sample_module.py (PR test_trigger_workflow). send_email() gained a `retries` parameter forwarded to an external, undefined `smtp_client.send`. The Corrector asserted the function 'handles retry attempts' — an unprovable claim, since smtp_client's implementation isn't visible anywhere in the codebase. The Validator correctly rejected this on accuracy grounds. Rebuilt here as a standalone synthetic case so this exact pattern has permanent regression coverage independent of whether the live fixture changes later."
+  },
+  "old_code": "def send_email(to, subject, body):\n    \"\"\"Send an email. Does not retry on failure.\"\"\"\n    smtp_client.send(to, subject, body)",
+  "new_code": "def send_email(to, subject, body, retries):\n    \"\"\"Send an email. Does not retry on failure.\"\"\"\n    smtp_client.send(to, subject, body, retries)",
+  "stale_doc_section": "Call `send_email(to, subject, body)` to send an email. If sending fails, it\nwill not retry \u2014 you must handle retries yourself.",
+  "human_fixed_doc_section": null,
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "rejected_accuracy",
+      "final_comment_kind": "flagged_rejected"
+    },
+    "notes_for_labeler": "There is no single 'correct' human_fixed_doc_section here — the honest fix is under-specified because smtp_client's real retry behavior is genuinely unknown from this code alone. The point of this case isn't 'what's the right correction' but 'does the pipeline correctly refuse to assert something it can't verify.' A Corrector output that hedges (e.g. '...now accepts a `retries` parameter, passed to the underlying send call' rather than '...handles retry attempts') should arguably pass Validator — see Future Product Opportunities #10. This case is a good regression check for whichever way that prompt-refinement decision eventually goes."
+  }
+}

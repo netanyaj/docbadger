@@ -1,0 +1,25 @@
+{
+  "id": "001_starlette_gzip_compresslevel",
+  "source": {
+    "repo": "https://github.com/encode/starlette",
+    "license": "BSD-3-Clause",
+    "code_commit": "467eb1c",
+    "code_commit_message": "Add compresslevel to GZipMiddleware (#1128)",
+    "doc_fix_commit": "89fae174a1ea10f59ae248fe030d9b7e83d0b8a0",
+    "doc_fix_commit_message": "Add missing `compresslevel` parameter on docs (#2553)",
+    "notes": "The doc-fix commit's own message confirms this is exactly the target pattern: 'The compresslevel parameter was added in #1128. But, it was not added to the document, so an explanation was added.' Found via history mining (see scripts/eval_dataset_miner.py), not authored by hand."
+  },
+  "old_code": "class GZipMiddleware:\n    def __init__(self, app: ASGIApp, minimum_size: int = 500) -> None:\n        self.app = app\n        self.minimum_size = minimum_size",
+  "new_code": "class GZipMiddleware:\n    def __init__(\n        self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 9\n    ) -> None:\n        self.app = app\n        self.minimum_size = minimum_size\n        self.compresslevel = compresslevel",
+  "stale_doc_section": "```python\nmiddleware = [\n    Middleware(GZipMiddleware, minimum_size=1000)\n]\n\napp = Starlette(routes=routes, middleware=middleware)\n```\n\nThe following arguments are supported:\n\n* `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.\n\nThe middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.",
+  "human_fixed_doc_section": "```python\nmiddleware = [\n    Middleware(GZipMiddleware, minimum_size=1000, compresslevel=9)\n]\n\napp = Starlette(routes=routes, middleware=middleware)\n```\n\nThe following arguments are supported:\n\n* `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.\n* `compresslevel` - Used during GZip compression. It is an integer ranging from 1 to 9. Defaults to `9`. Lower value results in faster compression but larger file sizes, while higher value results in slower compression but smaller file sizes.\n\nThe middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "corrector_completeness": "partial",
+    "notes_for_labeler": "CONFIRMED (real run, 2026-07-22): Verifier correctly flagged stale=True. Corrector proposed a patch; Validator approved it. However, comparing the proposed correction against human_fixed_doc_section above shows the real human fix touched TWO separate spots (the code example's argument list, AND a new bullet describing the parameter) while the Corrector's single-span design (Engineering Decision Log Entry 25) only ever touches one — in this run it correctly added the bullet but left the code example showing the old, now-incomplete call. Labeled 'partial' rather than a plain pass/fail: the proposed text is itself accurate and correctly validated, but incomplete relative to what a full fix requires. This is the first real evidence (not hypothetical) that the single-span design has a real completeness cost — logged in the Engineering Decision Log and Future Product Opportunities as a confirmed, not speculative, finding."
+  }
+}

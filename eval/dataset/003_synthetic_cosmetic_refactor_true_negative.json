@@ -1,0 +1,19 @@
+{
+  "id": "003_synthetic_cosmetic_refactor_true_negative",
+  "source": {
+    "type": "synthetic",
+    "rationale": "True negative — a local-variable rename with zero externally observable behavior change. Included because a precision/recall harness needs real negatives, not just positives; also a regression guard on change_filter/Verifier not over-flagging cosmetic diffs."
+  },
+  "old_code": "def calculate_shipping_cost(weight_kg, distance_km):\n    base_rate = 2.5\n    return base_rate * weight_kg + 0.1 * distance_km",
+  "new_code": "def calculate_shipping_cost(weight_kg, distance_km):\n    per_kg_rate = 2.5\n    return per_kg_rate * weight_kg + 0.1 * distance_km",
+  "stale_doc_section": "Call `calculate_shipping_cost(weight_kg, distance_km)` to get the shipping cost in dollars: `$2.50` per kilogram plus `$0.10` per kilometer.",
+  "human_fixed_doc_section": null,
+  "labels": {
+    "verifier_expected_stale": false,
+    "expected_pipeline_outcome": {
+      "corrector_status": null,
+      "validator_status": null
+    },
+    "notes_for_labeler": "Ideally this never even reaches the Verifier — change_filter should classify the rename as not meaningful. If it does reach the Verifier, it must correctly say stale=False since the formula and signature are unchanged. Two different layers could each be the one that gets this right; worth noting which one actually does during labeling. Corrector/Validator are expected to be null (never invoked) since a correctly-working Verifier should never mark this stale in the first place."
+  }
+}
