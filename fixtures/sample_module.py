@@ -1,3 +1,3 @@
-def send_email(to, subject, body):
+def send_email(to, subject, body, retries):
     """Send an email. Does not retry on failure."""
-    smtp_client.send(to, subject, body)
+    smtp_client.send(to, subject, body, retries)
