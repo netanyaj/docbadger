@@ -1,0 +1,19 @@
+{
+  "id": "004_synthetic_long_sentence_paraphrase_stress_test",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Stress-tests corrector._locate_verbatim_span beyond the whitespace/dash/quote tolerance added in Engineering Decision Log Entry 38. That fix handled a model normalizing FORMATTING while quoting (a line-wrap, an em dash). This case uses a long, compound sentence specifically to increase the chance a model lightly paraphrases WORDS while 'quoting' it (drops a clause, reorders, swaps a synonym) — something the tolerant locator does not and should not rescue, since that would cross from formatting-tolerance into silently accepting content drift. Expected outcome is genuinely uncertain (this depends on real model behavior, not deterministic code) — that uncertainty is itself the point: whichever way it goes is real signal on how often this failure mode still occurs post-fix."
+  },
+  "old_code": "def resize_image(path, width, height):\n    image = load(path)\n    image = image.resize((width, height))\n    image.save(path)",
+  "new_code": "def resize_image(path, width, height, preserve_aspect_ratio=False):\n    image = load(path)\n    if preserve_aspect_ratio:\n        width, height = _fit_aspect_ratio(image, width, height)\n    image = image.resize((width, height))\n    image.save(path)",
+  "stale_doc_section": "When you call `resize_image(path, width, height)`, the function will read the image located at the given path, adjust its dimensions to exactly match the provided width and height values without preserving the original aspect ratio, and then save the result back to the same path, overwriting the original file entirely without creating any backup copies.",
+  "human_fixed_doc_section": "When you call `resize_image(path, width, height, preserve_aspect_ratio=False)`, the function will read the image located at the given path and adjust its dimensions to match the provided width and height values. By default the original aspect ratio is not preserved; pass `preserve_aspect_ratio=True` to fit within the given dimensions while keeping the image's proportions. The result is saved back to the same path, overwriting the original file entirely without creating any backup copies.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run): corrector proposed a correction and Validator approved it on the first attempt \u2014 the stress test (long, paraphrase-prone sentence) did NOT reproduce a mechanical-abstention failure. A real, unambiguous negative result: confirms Entry 38's tolerant locator (or a clean exact match) held up on this longer/more complex sentence too, not just the original short case it was built from. SCHEMA NOTE: the original version of this file used null/null here to mean 'we genuinely don't know, don't score this' \u2014 but the harness treats an explicit null as a real prediction ('this stage should never run'), which produced a false mismatch once real data came in. Fixed: now that a real outcome is confirmed, this records the actual result as the gold label, the same way case 001 was finalized. The correct way to mark 'don't know yet' going forward is to OMIT the key from expected_pipeline_outcome entirely, not set it to null \u2014 null is reserved for asserting a stage should not run (see case 003)."
+  }
+}

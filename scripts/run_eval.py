@@ -92,6 +92,7 @@ def run_case(case: dict, model: str, client=None) -> dict:
             )
             result["validator_status"] = validator_result.status.value
             result["validator_rationale"] = validator_result.rationale
+            result["applied_old_text"] = corrector_result.old_text
             result["proposed_new_text"] = corrector_result.new_text
 
     # Corrector/Validator matches are only meaningful when the Verifier

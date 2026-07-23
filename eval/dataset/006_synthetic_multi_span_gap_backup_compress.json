@@ -1,0 +1,20 @@
+{
+  "id": "006_synthetic_multi_span_gap_backup_compress",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Deliberately reproduces the same SHAPE of gap found in the real case 001_starlette_gzip_compresslevel (Engineering Decision Log Entry 39): a code-example call site AND a separate parameter bullet both need updating in the same doc section, but the Corrector's design proposes exactly one contiguous span. Built by hand specifically to get a second, independent data point on this question without waiting on real-history mining to surface another one \u2014 one real + one deliberately-constructed instance is stronger evidence of how often this actually costs completeness than either alone."
+  },
+  "old_code": "def create_backup(source_path, destination_path):\n    data = _read_all(source_path)\n    _write(destination_path, data)",
+  "new_code": "def create_backup(source_path, destination_path, compress=False):\n    data = _read_all(source_path)\n    if compress:\n        data = _gzip(data)\n    _write(destination_path, data)",
+  "stale_doc_section": "```python\ncreate_backup(\"/data\", \"/backups\")\n```\n\nParameters:\n\n* `source_path` \u2014 path to the directory to back up.\n* `destination_path` \u2014 path where the backup will be written.",
+  "human_fixed_doc_section": "```python\ncreate_backup(\"/data\", \"/backups\", compress=True)\n```\n\nParameters:\n\n* `source_path` \u2014 path to the directory to back up.\n* `destination_path` \u2014 path where the backup will be written.\n* `compress` \u2014 optional. gzip-compress the backup contents. Defaults to `False`.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "corrector_completeness": "partial",
+    "notes_for_labeler": "CONFIRMED (real run): proposed_new_text only added the new `compress` bullet — it did not touch the code example block, which still shows `create_backup(\"/data\", \"/backups\")` without `compress=True`, exactly reproducing case 001's gap. This is now a SECOND independent confirmation (real-mined case 001 + this hand-authored case) of the single-span design's completeness cost — no longer a one-off. Strengthens the case for treating Future Product Opportunities #11 (multi-span Corrector support) as backed by a real, recurring pattern rather than a single data point, though still not enough instances (n=2) to justify the added complexity on its own."
+  }
+}

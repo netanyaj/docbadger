@@ -1,0 +1,19 @@
+{
+  "id": "007_synthetic_feature_removal_true_positive",
+  "source": {
+    "type": "synthetic",
+    "rationale": "All prior cases (001, 002, 006) are parameter/feature ADDITIONS. This tests a qualitatively different change_type: a parameter and its entire feature (caching) REMOVED from the function. Checks two things the addition-only cases can't: does the Verifier correctly flag staleness caused by removal (not just omission of something new), and does the Corrector correctly propose deleting the now-nonexistent `use_cache` mention rather than leaving it in place or inventing a justification for why it might still work."
+  },
+  "old_code": "def get_user_profile(user_id, use_cache=True):\n    if use_cache:\n        return cache.get(user_id)\n    return db.fetch(user_id)",
+  "new_code": "def get_user_profile(user_id):\n    return db.fetch(user_id)",
+  "stale_doc_section": "Call `get_user_profile(user_id, use_cache=True)` to retrieve a user's profile. Set `use_cache=False` to bypass the cache and always fetch fresh data from the database.",
+  "human_fixed_doc_section": "Call `get_user_profile(user_id)` to retrieve a user's profile. The profile is always fetched directly from the database; caching was removed.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed"
+    },
+    "pending_human_decision": null,
+    "notes_for_labeler": "DECIDED (human review): same call as case 005, reached after checking the actual proposed text (which does fully remove the stale use_cache mention \u2014 confirmed this wasn't a real leftover-content miss) and cross-referencing case 001's real human fix, which also doesn't narrate that a parameter is new. Judged a Validator miscalibration, not desired behavior. validator_status intentionally left unscored (key omitted), same as case 005, pending a possible future prompt revision."
+  }
+}

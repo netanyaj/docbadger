@@ -1,0 +1,20 @@
+{
+  "id": "005_synthetic_terse_bullet_style_mismatch",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Targets Validator's rejected_style path. The surrounding doc uses a very distinctive, rigid template (`PARAM` \u2014 required/optional. must be TYPE. [defaults to X].`) for every existing bullet. A Corrector describing a new parameter in natural explanatory prose, rather than matching that terse template exactly, is a real style clash \u2014 accurate content, inconsistent form. Real model behavior may still match the template well (LLMs are often good at local style-matching when the pattern is this explicit), so this is a best-effort elicitation, not a guarantee \u2014 whichever way it goes is useful signal on how well the Corrector picks up on a strict local convention without being told about it explicitly."
+  },
+  "old_code": "class CacheConfig:\n    def __init__(self, max_size: int, ttl_seconds: int, eviction_policy: str = \"lru\"):\n        self.max_size = max_size\n        self.ttl_seconds = ttl_seconds\n        self.eviction_policy = eviction_policy",
+  "new_code": "class CacheConfig:\n    def __init__(self, max_size: int, ttl_seconds: int, namespace: str, eviction_policy: str = \"lru\"):\n        self.max_size = max_size\n        self.ttl_seconds = ttl_seconds\n        self.namespace = namespace\n        self.eviction_policy = eviction_policy",
+  "stale_doc_section": "## Configuring the Cache\n\n* `MAX_SIZE` \u2014 required. must be int.\n* `TTL_SECONDS` \u2014 required. must be int.\n* `EVICTION_POLICY` \u2014 optional. must be str. defaults to `lru`.",
+  "human_fixed_doc_section": "## Configuring the Cache\n\n* `MAX_SIZE` \u2014 required. must be int.\n* `TTL_SECONDS` \u2014 required. must be int.\n* `NAMESPACE` \u2014 required. must be str.\n* `EVICTION_POLICY` \u2014 optional. must be str. defaults to `lru`.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed"
+    },
+    "corrector_style_match_observed": true,
+    "pending_human_decision": null,
+    "notes_for_labeler": "DECIDED (human review): judged as a Validator miscalibration, not desired behavior \u2014 not locking in 'rejected_accuracy' as the gold label. Cross-referenced against case 001's real human-authored fix (the actual starlette maintainer's own correction), which also describes the new `compresslevel` parameter with zero narration that it's new, and was correctly approved. Reference-style docs describing current parameters, not changelog-style docs narrating history, is the established real-world convention \u2014 rejecting this case for not narrating history is inconsistent with that ground truth. validator_status intentionally left unscored (key omitted) rather than locked to either value, pending a possible future prompt revision; if/when the Validator's accuracy prompt is tuned to address Future Product Opportunities #12, re-run this case and reconsider."
+  }
+}
