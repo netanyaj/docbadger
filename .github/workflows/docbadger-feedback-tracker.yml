@@ -1,0 +1,44 @@
+name: DocBadger Feedback Tracker
+
+# CONFIRMED (verified empirically against a real throwaway repo): editing a
+# GitHub comment — a full text rewrite or toggling a task-list checkbox — is
+# gated identically: only the comment's original author or a user with
+# WRITE permission to the repo can do either. comment.user stays as the
+# original author (the bot) regardless of who edits it; sender.login
+# reflects who actually performed the action.
+#
+# Real implication: only maintainers/collaborators with write access can
+# give feedback this way. In a typical fork-based OSS contribution model, an
+# external PR author usually lacks write access and cannot toggle the
+# checkbox on their own PR's comment — feedback capture reaches repo
+# collaborators reviewing a PR, not necessarily the PR's own author.
+#
+# Never blocks or gates a PR merge — purely observational
+# (Product Decision Log Entry 11). No PyGithub / GitHub API calls are made;
+# this only reads the webhook event payload GitHub already provides and
+# writes to the docbadger/index branch via git plumbing.
+
+on:
+  issue_comment:
+    types: [edited]
+
+permissions:
+  contents: write   # to push feedback.json to the docbadger/index branch
+
+jobs:
+  track-feedback:
+    if: github.event.issue.pull_request != null   # PR comments only, not plain issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Track feedback
+        env:
+          DOCBADGER_BOT_LOGIN: "github-actions[bot]"
+        run: python src/feedback_tracker_main.py

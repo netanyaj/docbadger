@@ -52,22 +52,50 @@ def _ensure_git_identity() -> None:
     subprocess.run(["git", "config", "--global", "user.name", "DocBadger Bot"], check=False)
 
 
-def push_index(
-    cache: dict, remote: str = "origin", branch: str = INDEX_BRANCH, filename: str = INDEX_FILENAME
+def _existing_tree_lines(remote: str, branch: str, exclude_filename: str) -> list:
+    """Returns raw `git ls-tree` lines for files currently on the branch,
+    excluding the one we're about to write ourselves. Used so pushing one
+    file (e.g. feedback.json) never silently deletes another file already
+    on the same branch (e.g. embeddings.json) — the original version of
+    this module always built a brand-new single-file tree, which would have
+    wiped out any co-existing file the moment Milestone 6 put a second kind
+    of durable state (feedback.json) on this same branch (Entry 43)."""
+    fetch = subprocess.run(["git", "fetch", remote, branch], capture_output=True, text=True)
+    if fetch.returncode != 0:
+        return []  # branch doesn't exist remotely yet
+    ls = subprocess.run(
+        ["git", "ls-tree", f"{remote}/{branch}"], capture_output=True, text=True,
+    )
+    if ls.returncode != 0:
+        return []
+    lines = []
+    for line in ls.stdout.splitlines():
+        if "\t" not in line:
+            continue
+        _, name = line.split("\t", 1)
+        if name != exclude_filename:
+            lines.append(line)
+    return lines
+
+
+def push_file(
+    content_str: str, filename: str, remote: str = "origin", branch: str = INDEX_BRANCH,
 ) -> None:
-    """Writes `cache` as a new commit on the index branch, without ever
-    checking that branch out or touching the current working tree.
+    """Writes `filename` as a new commit on the shared index branch,
+    preserving any other files already present in that branch's tree, and
+    without ever checking that branch out or touching the current working
+    tree. Shared by push_index (embeddings.json) and feedback storage
+    (feedback.json) — the actual git-plumbing logic lives here exactly once.
 
-    History depth is capped at MAX_HISTORY_DEPTH: once the branch reaches
-    that many commits, the next push starts a fresh root commit instead of
-    chaining another parent, bounding the branch's long-term growth while
-    still preserving some recent history for debugging."""
+    History depth capping (MAX_HISTORY_DEPTH) applies to the branch as a
+    whole, same as before — both files share the same commit history.
+    """
     _ensure_git_identity()
-    content = json.dumps(cache, indent=2)
 
-    blob_sha = _run(["hash-object", "-w", "--stdin"], input_text=content).stdout.strip()
-
-    mktree_input = f"100644 blob {blob_sha}\t{filename}\n"
+    blob_sha = _run(["hash-object", "-w", "--stdin"], input_text=content_str).stdout.strip()
+    other_files = _existing_tree_lines(remote, branch, exclude_filename=filename)
+    new_line = f"100644 blob {blob_sha}\t{filename}"
+    mktree_input = "\n".join([*other_files, new_line]) + "\n"
     tree_sha = _run(["mktree"], input_text=mktree_input).stdout.strip()
 
     parent_result = subprocess.run(
@@ -75,7 +103,7 @@ def push_index(
     )
     parent_sha = parent_result.stdout.strip() if parent_result.returncode == 0 else None
 
-    parent_args: list[str] = []
+    parent_args: list = []
     if parent_sha:
         depth_result = subprocess.run(
             ["git", "rev-list", "--count", parent_sha], capture_output=True, text=True,
@@ -83,11 +111,18 @@ def push_index(
         current_depth = int(depth_result.stdout.strip()) if depth_result.returncode == 0 else 0
         if current_depth < MAX_HISTORY_DEPTH:
             parent_args = ["-p", parent_sha]
-        # else: intentionally omit parent — squashes to a fresh root commit,
-        # capping the branch's history depth instead of growing forever.
+        # else: intentionally omit parent — squashes to a fresh root commit.
 
     commit_sha = _run(
-        ["commit-tree", tree_sha, *parent_args, "-m", "Update DocBadger index cache"]
+        ["commit-tree", tree_sha, *parent_args, "-m", f"Update {filename} on {branch}"]
     ).stdout.strip()
 
     _run(["push", remote, f"{commit_sha}:refs/heads/{branch}"])
+
+
+def push_index(
+    cache: dict, remote: str = "origin", branch: str = INDEX_BRANCH, filename: str = INDEX_FILENAME
+) -> None:
+    """Writes `cache` (the embedding cache) via push_file, preserving any
+    other files already on the branch — e.g. feedback.json."""
+    push_file(json.dumps(cache, indent=2), filename, remote, branch)

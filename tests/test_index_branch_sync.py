@@ -11,7 +11,7 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from index_branch_sync import pull_index, push_index
+from index_branch_sync import pull_index, push_index, push_file
 
 
 def _run(repo_dir: str, *args: str) -> subprocess.CompletedProcess:
@@ -98,3 +98,45 @@ def test_second_push_updates_content_and_preserves_history():
 
     assert result == {"hash_a": [1.0], "hash_b": [2.0]}
     assert len(log.splitlines()) == 2  # two commits — real history, not a force-push overwrite
+
+
+def test_pushing_a_second_file_does_not_clobber_the_first():
+    # Reproduces the exact bug found while building Milestone 6's feedback
+    # storage: push_index used to build a brand-new single-file tree every
+    # call, so pushing feedback.json after embeddings.json (or vice versa)
+    # would silently delete whichever file was pushed first. This proves
+    # both now coexist correctly on the same branch.
+    work_dir = _build_repo_with_fake_origin()
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        push_index({"hash_a": [1.0, 2.0]})  # embeddings.json
+        push_file('{"records": ["feedback one"]}', "feedback.json")  # a second, different file
+
+        embeddings_result = pull_index()
+        feedback_result = pull_index(filename="feedback.json")
+    finally:
+        os.chdir(original_cwd)
+
+    assert embeddings_result == {"hash_a": [1.0, 2.0]}  # NOT wiped out by the second push
+    assert feedback_result == {"records": ["feedback one"]}
+
+
+def test_updating_the_first_file_again_still_preserves_the_second():
+    # The reverse order too: updating embeddings.json after feedback.json
+    # already exists must not wipe out feedback.json.
+    work_dir = _build_repo_with_fake_origin()
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        push_index({"hash_a": [1.0]})
+        push_file('{"records": ["a"]}', "feedback.json")
+        push_index({"hash_a": [1.0], "hash_b": [2.0]})  # update embeddings.json again
+
+        embeddings_result = pull_index()
+        feedback_result = pull_index(filename="feedback.json")
+    finally:
+        os.chdir(original_cwd)
+
+    assert embeddings_result == {"hash_a": [1.0], "hash_b": [2.0]}
+    assert feedback_result == {"records": ["a"]}  # still intact

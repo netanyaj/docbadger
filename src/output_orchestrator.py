@@ -17,11 +17,21 @@ Engineering Decision Log for the corrected entries and the Case Study
 Journal for the honest account of the mistake.)
 """
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Optional
 
 from corrector import CorrectionStatus
 from validator import ValidationStatus
+
+
+def _finding_id(qualified_id: str, heading_path: str) -> str:
+    """Deterministic, stable across re-runs of the same PR — so feedback
+    tied to a finding_id keeps working across multiple runs, not just within
+    one run's own findings list. Same (qualified_id, heading_path) pair
+    always produces the same id, regardless of what else changed that run.
+    """
+    return hashlib.sha256(f"{qualified_id}::{heading_path}".encode()).hexdigest()[:12]
 
 
 @dataclass
@@ -44,6 +54,12 @@ class CommentEntry:
     qualified_id: str
     heading_path: str
     detail: str
+    finding_id: Optional[str] = None      # only set for feedback-eligible kinds
+    tier: Optional[str] = None
+    corrector_status: Optional[str] = None
+    validator_status: Optional[str] = None
+    old_text: Optional[str] = None
+    new_text: Optional[str] = None
 
 
 @dataclass
@@ -69,7 +85,10 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
 
         # f.stale is True from here down.
         if f.tier == "low" or f.corrector_result is None:
-            comment_entries.append(CommentEntry("flagged_low_confidence", f.qualified_id, f.heading_path, f.diagnosis))
+            comment_entries.append(CommentEntry(
+                "flagged_low_confidence", f.qualified_id, f.heading_path, f.diagnosis,
+                finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+            ))
             continue
 
         cr = f.corrector_result
@@ -77,6 +96,8 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
             comment_entries.append(CommentEntry(
                 "flagged_abstained", f.qualified_id, f.heading_path,
                 f"{cr.status.value}: {cr.rationale}",
+                finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+                corrector_status=cr.status.value,
             ))
             continue
 
@@ -87,6 +108,8 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
             comment_entries.append(CommentEntry(
                 "flagged_abstained", f.qualified_id, f.heading_path,
                 "Corrector proposed a correction but it was never validated — treating as unresolved.",
+                finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+                corrector_status=cr.status.value,
             ))
             continue
 
@@ -96,6 +119,9 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 f"{vr.rationale}\n"
                 f"Replace: `{vr.old_text}`\n"
                 f"With: `{vr.new_text}`",
+                finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+                corrector_status=cr.status.value, validator_status=vr.status.value,
+                old_text=vr.old_text, new_text=vr.new_text,
             ))
         else:
             comment_entries.append(CommentEntry(
@@ -104,6 +130,9 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 f"Drafted correction (not marked ready to apply) —\n"
                 f"Replace: `{vr.old_text}`\n"
                 f"With: `{vr.new_text}`",
+                finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+                corrector_status=cr.status.value, validator_status=vr.status.value,
+                old_text=vr.old_text, new_text=vr.new_text,
             ))
 
     return OrchestrationPlan(comment_entries=comment_entries)

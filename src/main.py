@@ -163,7 +163,10 @@ def main():
     _set_output("corrections_proposed", sum(1 for e in plan.comment_entries if e.kind == "correction_ready"))
 
     github_token = os.environ.get("GITHUB_TOKEN")
-    comment_body = build_final_comment(len(meaningful), plan.comment_entries, error_count)
+    comment_body = build_final_comment(
+        len(meaningful), plan.comment_entries, error_count,
+        pr_number=pr_number, repo_full_name=repo_full_name,
+    )
     print(comment_body)
 
     if github_token:
