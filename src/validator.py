@@ -40,6 +40,7 @@ from enum import Enum
 from typing import Optional
 
 from verifier import _build_client
+from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 
 
 class ValidationStatus(str, Enum):
@@ -59,56 +60,58 @@ class ValidatorResult:
     rationale: str       # always populated: why approved, or why rejected/unvalidated
 
 
-SYSTEM_PROMPT = """You are the Validator stage in a documentation-staleness pipeline.
+def _build_prompts(new_code: str, doc_section: str, old_text: str, new_text: str, nonce: str) -> tuple:
+    """Builds (system_prompt, user_prompt) with untrusted content wrapped in
+    per-call random-suffix tags — see prompt_delimiters.py (Engineering
+    Decision Log Entry 51)."""
+    code_tag = tag_name("new_code", nonce)
+    doc_tag = tag_name("original_doc_section", nonce)
+    old_tag = tag_name("proposed_old_text", nonce)
+    new_tag = tag_name("proposed_new_text", nonce)
+
+    system = f"""You are the Validator stage in a documentation-staleness pipeline.
 You are an INDEPENDENT check — you have not been told why an earlier stage
 believed this documentation needed a correction, and you should not assume
 its reasoning was right. Judge only what is in front of you.
 
 You will be shown:
-1. NEW CODE (ground truth) — the actual current code.
-2. ORIGINAL DOC SECTION — the full documentation section before any change.
-3. PROPOSED OLD TEXT — the exact span of the original section a Corrector
-   stage wants to replace.
-4. PROPOSED NEW TEXT — what it wants to replace that span with.
+1. {code_tag} — the actual current code (ground truth).
+2. {doc_tag} — the full documentation section before any change.
+3. {old_tag} — the exact span of the original section a Corrector stage
+   wants to replace.
+4. {new_tag} — what it wants to replace that span with.
 
 Assess two independent things:
-- ACCURACY: does PROPOSED NEW TEXT correctly and completely describe what
-  NEW CODE actually does? Flag anything invented, dropped, or wrong.
-- STYLE: does PROPOSED NEW TEXT read naturally alongside the untouched parts
-  of ORIGINAL DOC SECTION — consistent tone, tense, and terminology? A
-  correction can be factually accurate and still read awkwardly against its
-  surroundings; that is a style problem, not an accuracy problem.
+- ACCURACY: does the proposed new text correctly and completely describe what
+  the new code actually does? Flag anything invented, dropped, or wrong.
+- STYLE: does the proposed new text read naturally alongside the untouched
+  parts of the original doc section — consistent tone, tense, and
+  terminology? A correction can be factually accurate and still read
+  awkwardly against its surroundings; that is a style problem, not an
+  accuracy problem.
 
-If NEW CODE does not clearly support the proposed text as accurate, reject
-on accuracy even if it reads well. Only reject on style if accuracy is fine
-but the phrasing genuinely clashes with the surrounding prose.
+If the new code does not clearly support the proposed text as accurate,
+reject on accuracy even if it reads well. Only reject on style if accuracy is
+fine but the phrasing genuinely clashes with the surrounding prose.
+
+{delimiter_explanation("original_doc_section", nonce)}
 
 Respond with ONLY a JSON object, no other text, no markdown fences, in
 exactly this shape:
-{"status": "approved" | "rejected_accuracy" | "rejected_style", "rationale": "<one to two sentences, specific to what you checked>"}
+{{"status": "approved" | "rejected_accuracy" | "rejected_style", "rationale": "<one to two sentences, specific to what you checked>"}}
 """
 
-USER_PROMPT_TEMPLATE = """NEW CODE:
-```
-{new_code}
-```
+    user = f"""{wrap("new_code", new_code, nonce)}
 
-ORIGINAL DOC SECTION:
-```
-{doc_section}
-```
+{wrap("original_doc_section", doc_section, nonce)}
 
-PROPOSED OLD TEXT:
-```
-{old_text}
-```
+{wrap("proposed_old_text", old_text, nonce)}
 
-PROPOSED NEW TEXT:
-```
-{new_text}
-```
+{wrap("proposed_new_text", new_text, nonce)}
 
 Assess accuracy and style."""
+
+    return system, user
 
 
 def _check_structural(doc_section: str, old_text: str, new_text: str) -> Optional[str]:
@@ -136,13 +139,13 @@ def _check_structural(doc_section: str, old_text: str, new_text: str) -> Optiona
     return None
 
 
-def _call_llm(user_prompt: str, model: str, client) -> str:
+def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> str:
     """Raises on API failure — caller handles fail-open, same division of
     responsibility as verifier.judge_staleness and corrector.generate_correction."""
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         temperature=0,
@@ -189,12 +192,11 @@ def validate_correction(
         )
 
     client = client or _build_client()
-    user_prompt = USER_PROMPT_TEMPLATE.format(
-        new_code=new_code, doc_section=doc_section, old_text=old_text, new_text=new_text
-    )
+    nonce = new_nonce()
+    system_prompt, user_prompt = _build_prompts(new_code, doc_section, old_text, new_text, nonce)
 
     try:
-        raw = _call_llm(user_prompt, model, client)
+        raw = _call_llm(system_prompt, user_prompt, model, client)
     except Exception as e:
         return ValidatorResult(
             status=ValidationStatus.ERROR_INFRA,

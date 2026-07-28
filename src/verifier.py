@@ -9,21 +9,34 @@ import os
 
 from openai import OpenAI
 
-SYSTEM_PROMPT = """You are a documentation accuracy auditor. You will be shown:
-1. The OLD version of a code function/class.
-2. The NEW version of that same function/class, after a change.
-3. A documentation section that describes this code's behavior.
+from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
+
+
+def _build_prompts(old_code: str, new_code: str, doc_section: str, nonce: str) -> tuple:
+    """Builds (system_prompt, user_prompt) with untrusted content wrapped in
+    per-call random-suffix tags — see prompt_delimiters.py (Engineering
+    Decision Log Entry 51)."""
+    old_tag = tag_name("old_code", nonce)
+    new_tag = tag_name("new_code", nonce)
+    doc_tag = tag_name("doc_section", nonce)
+
+    system = f"""You are a documentation accuracy auditor. You will be shown:
+1. {old_tag} — the OLD version of a code function/class.
+2. {new_tag} — the NEW version of that same function/class, after a change.
+3. {doc_tag} — a documentation section that describes this code's behavior.
 
 Your job: determine whether the documentation is now STALE — meaning it no
-longer accurately describes the NEW code's behavior.
+longer accurately describes the new code's behavior.
+
+{delimiter_explanation("doc_section", nonce)}
 
 Respond with ONLY a JSON object, no other text, no markdown fences, in this
 exact shape:
-{
+{{
   "stale": true or false,
   "diagnosis": "one or two sentences explaining your reasoning, specific to
                  what changed and why it does or doesn't affect the doc"
-}
+}}
 
 Be precise. Do not flag a section as stale just because the code changed —
 only flag it if the change actually contradicts or invalidates something the
@@ -31,22 +44,15 @@ documentation claims. If the documentation is still technically accurate,
 even if incomplete, lean towards NOT stale and say so in your diagnosis.
 """
 
-USER_PROMPT_TEMPLATE = """OLD CODE:
-```
-{old_code}
-```
+    user = f"""{wrap("old_code", old_code, nonce)}
 
-NEW CODE:
-```
-{new_code}
-```
+{wrap("new_code", new_code, nonce)}
 
-DOCUMENTATION SECTION:
-```
-{doc_section}
-```
+{wrap("doc_section", doc_section, nonce)}
 
 Is the documentation section now stale relative to the new code?"""
+
+    return system, user
 
 
 def _build_client() -> OpenAI:
@@ -65,14 +71,13 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
     used by corrector.generate_correction.
     """
     client = client or _build_client()
-    user_prompt = USER_PROMPT_TEMPLATE.format(
-        old_code=old_code, new_code=new_code, doc_section=doc_section
-    )
+    nonce = new_nonce()
+    system_prompt, user_prompt = _build_prompts(old_code, new_code, doc_section, nonce)
     try:
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0,
