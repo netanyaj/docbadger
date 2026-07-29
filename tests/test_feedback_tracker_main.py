@@ -142,3 +142,38 @@ def test_persist_snapshots_is_idempotent_and_preserves_original_created_at():
     assert len(final_store) == 1  # updated in place, not duplicated
     assert final_store["f1"]["verdict"] == "rejected"
     assert final_store["f1"]["created_at"] == first_created_at  # original creation time preserved
+
+
+def test_reason_context_flows_through_to_the_persisted_snapshot():
+    block = _checked_block(finding_id="f1", label="Rejected")
+    block = block.replace(
+        "_Optional: add a short reason/context on the line below._",
+        "_Optional: add a short reason/context on the line below._\nThis correction is inaccurate.",
+    )
+    event = _event(BOT_LOGIN, block, sender_login="alice")
+    snapshots = build_snapshots_from_event(event, BOT_LOGIN)
+
+    assert snapshots[0].reason_context == "This correction is inaccurate."
+
+    old_cwd = os.getcwd()
+    work_dir = tempfile.mkdtemp()
+    bare_dir = tempfile.mkdtemp()
+    subprocess.run(["git", "init", "--bare", "-q"], cwd=bare_dir, check=True)
+    subprocess.run(["git", "init", "-q"], cwd=work_dir, check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=work_dir, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=work_dir, check=True)
+    subprocess.run(["git", "remote", "add", "origin", bare_dir], cwd=work_dir, check=True)
+    with open(os.path.join(work_dir, "readme.txt"), "w") as f:
+        f.write("x")
+    subprocess.run(["git", "add", "."], cwd=work_dir, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=work_dir, check=True)
+    subprocess.run(["git", "push", "origin", "HEAD:refs/heads/main"], cwd=work_dir, check=True)
+
+    try:
+        os.chdir(work_dir)
+        persist_snapshots(snapshots)
+        stored = pull_index(filename="feedback.json")
+    finally:
+        os.chdir(old_cwd)
+
+    assert stored["f1"]["reason_context"] == "This correction is inaccurate."

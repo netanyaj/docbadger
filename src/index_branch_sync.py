@@ -47,9 +47,24 @@ def pull_index(remote: str = "origin", branch: str = INDEX_BRANCH, filename: str
 
 def _ensure_git_identity() -> None:
     """commit-tree (unlike hash-object/mktree) requires a committer identity
-    to create a commit object. Our container starts with none configured."""
-    subprocess.run(["git", "config", "--global", "user.email", "docbadger-bot@users.noreply.github.com"], check=False)
-    subprocess.run(["git", "config", "--global", "user.name", "DocBadger Bot"], check=False)
+    to create a commit object — a fresh Docker container starts with none
+    configured at all (Entry 16). This used to unconditionally set
+    --global user.name/user.email, which silently and permanently
+    overwrote a real developer's global git identity — everywhere on their
+    machine, not just this repo — the moment they ran any code path that
+    pushes to the index branch locally (reported directly from real usage,
+    not a hypothetical). Fixed: only sets a fallback identity if NONE is
+    already configured at any level, and scopes that fallback to the LOCAL
+    repo only, never --global, so even the fallback can't leak beyond the
+    repository it's actually needed in.
+    """
+    has_name = subprocess.run(["git", "config", "user.name"], capture_output=True, text=True).returncode == 0
+    has_email = subprocess.run(["git", "config", "user.email"], capture_output=True, text=True).returncode == 0
+
+    if not has_name:
+        subprocess.run(["git", "config", "user.name", "DocBadger Bot"], check=False)
+    if not has_email:
+        subprocess.run(["git", "config", "user.email", "docbadger-bot@users.noreply.github.com"], check=False)
 
 
 def _existing_tree_lines(remote: str, branch: str, exclude_filename: str) -> list:

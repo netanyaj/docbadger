@@ -87,6 +87,7 @@ def build_snapshots_from_event(event: dict, bot_login: str) -> list:
             finding_id=entry["finding_id"],
             verdict=entry["verdict"],
             reviewer_username=reviewer,
+            reason_context=entry.get("reason_context"),
             updated_at=now,
             **snap_fields,
         ))

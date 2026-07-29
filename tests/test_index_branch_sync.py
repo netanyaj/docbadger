@@ -140,3 +140,56 @@ def test_updating_the_first_file_again_still_preserves_the_second():
 
     assert embeddings_result == {"hash_a": [1.0], "hash_b": [2.0]}
     assert feedback_result == {"records": ["a"]}  # still intact
+
+
+def test_existing_git_identity_is_never_overwritten():
+    # Reproduces exactly what was reported from real usage: a developer's own
+    # git identity must survive calling push_file, not get silently replaced
+    # with the bot's.
+    work_dir = _build_repo_with_fake_origin()  # already sets local identity to "Test Runner"
+    isolated_global = tempfile.mkstemp()[1]  # isolate from this sandbox's own (already-polluted) global config
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        os.environ["GIT_CONFIG_GLOBAL"] = isolated_global
+        push_index({"hash_a": [1.0]})
+
+        local_name = _run(work_dir, "config", "--local", "user.name").stdout.strip()
+        local_email = _run(work_dir, "config", "--local", "user.email").stdout.strip()
+        global_content = open(isolated_global).read()
+    finally:
+        os.chdir(original_cwd)
+        os.environ.pop("GIT_CONFIG_GLOBAL", None)
+
+    assert local_name == "Test Runner"        # untouched — not overwritten to "DocBadger Bot"
+    assert local_email == "test@example.com"   # untouched
+    assert "DocBadger" not in global_content   # global config never touched at all
+
+
+def test_fallback_identity_is_set_locally_not_globally_when_nothing_is_configured():
+    # A truly bare environment (like a fresh Docker container) with no
+    # identity configured anywhere still needs *some* identity for
+    # commit-tree to succeed — but the fallback must land in the LOCAL repo
+    # config only, never --global.
+    bare_dir = tempfile.mkdtemp()
+    _run(bare_dir, "init", "--bare", "-q")
+    work_dir = tempfile.mkdtemp()
+    _run(work_dir, "init", "-q")
+    _run(work_dir, "remote", "add", "origin", bare_dir)
+    # Deliberately NOT setting any local identity here, unlike the other helper.
+
+    isolated_global = tempfile.mkstemp()[1]  # empty — simulates no global identity either
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        os.environ["GIT_CONFIG_GLOBAL"] = isolated_global
+        push_index({"hash_a": [1.0]})  # must succeed even with zero pre-existing identity
+
+        local_name = _run(work_dir, "config", "--local", "user.name").stdout.strip()
+        global_content = open(isolated_global).read()
+    finally:
+        os.chdir(original_cwd)
+        os.environ.pop("GIT_CONFIG_GLOBAL", None)
+
+    assert local_name == "DocBadger Bot"       # fallback correctly applied
+    assert "DocBadger" not in global_content    # but scoped to local only, global never touched

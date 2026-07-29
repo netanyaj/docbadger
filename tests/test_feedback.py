@@ -80,3 +80,62 @@ def test_feedback_eligible_kinds_excludes_verified_and_check_incomplete():
     assert "check_incomplete" not in FEEDBACK_ELIGIBLE_KINDS
     assert "correction_ready" in FEEDBACK_ELIGIBLE_KINDS
     assert "flagged_rejected" in FEEDBACK_ELIGIBLE_KINDS
+
+
+def test_reason_context_is_none_when_placeholder_left_untouched():
+    block = _sample_block().replace("- [ ] Accepted", "- [x] Accepted")
+    results = parse_feedback_from_comment(block)
+    assert results[0]["reason_context"] is None
+
+
+def test_reason_context_captures_text_added_below_the_placeholder():
+    block = _sample_block()
+    block = block.replace("- [ ] Accepted", "- [x] Accepted")
+    block = block.replace(
+        "_Optional: add a short reason/context on the line below._",
+        "_Optional: add a short reason/context on the line below._\nThe code clearly still supports this, disagree with the rejection.",
+    )
+    results = parse_feedback_from_comment(block)
+    assert results[0]["verdict"] == "accepted"
+    assert results[0]["reason_context"] == "The code clearly still supports this, disagree with the rejection."
+
+
+def test_reason_context_captures_text_typed_directly_over_the_placeholder():
+    # A reviewer might just edit the placeholder line in place rather than
+    # adding a new line below it — should still be captured.
+    block = _sample_block().replace(
+        "_Optional: add a short reason/context on the line below._",
+        "This correction missed the actual bug.",
+    )
+    results = parse_feedback_from_comment(block)
+    assert results[0]["reason_context"] == "This correction missed the actual bug."
+
+
+def test_reason_context_is_scoped_to_the_correct_finding_among_several():
+    block1 = _sample_block(finding_id="f1")
+    block1 = block1.replace("- [ ] Accepted", "- [x] Accepted")
+    block1 = block1.replace(
+        "_Optional: add a short reason/context on the line below._",
+        "_Optional: add a short reason/context on the line below._\nGood catch.",
+    )
+    block2 = _sample_block(finding_id="f2")
+    block2 = block2.replace("- [ ] Rejected", "- [x] Rejected")
+    block2 = block2.replace(
+        "_Optional: add a short reason/context on the line below._",
+        "_Optional: add a short reason/context on the line below._\nThis one is wrong though.",
+    )
+    comment = f"## Header\n{block1}\n\n### Second finding\n{block2}"
+    results = parse_feedback_from_comment(comment)
+    by_id = {r["finding_id"]: r["reason_context"] for r in results}
+    assert by_id == {"f1": "Good catch.", "f2": "This one is wrong though."}
+
+
+def test_multiline_reason_context_is_preserved():
+    block = _sample_block()
+    block = block.replace("- [ ] Unsure", "- [x] Unsure")
+    block = block.replace(
+        "_Optional: add a short reason/context on the line below._",
+        "_Optional: add a short reason/context on the line below._\nNot sure about this one.\nMight need a second look.",
+    )
+    results = parse_feedback_from_comment(block)
+    assert results[0]["reason_context"] == "Not sure about this one.\nMight need a second look."
