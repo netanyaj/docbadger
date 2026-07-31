@@ -30,6 +30,8 @@ outputs:
     description: "Count of sections the verifier judged stale"
   corrections_proposed:
     description: "Count of corrections that passed validation and are shown as ready-to-apply in the summary comment"
+  estimated_cost_usd:
+    description: "Approximate LLM cost of this run, in USD (see cost_tracking.py's pricing table — approximate, not exact)"
 
 runs:
   using: "docker"
