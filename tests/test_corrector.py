@@ -18,28 +18,33 @@ class _FakeChoice:
 
 
 class _FakeResponse:
-    def __init__(self, content):
+    def __init__(self, content, usage=None):
         self.choices = [_FakeChoice(content)]
+        self.usage = usage
 
 
 class FakeOpenAIClient:
     """Mimics the shape of client.chat.completions.create(...) that
     verifier.judge_staleness and corrector.generate_correction both call —
     returns each entry in `responses` in order, one per call, or raises the
-    given exception if one is scripted in that slot."""
+    given exception if one is scripted in that slot. `usage`, if provided,
+    is attached to every response (existing calls that don't pass it are
+    unaffected — usage stays None, which cost_tracking.usage_from_response
+    gracefully treats as zero)."""
 
-    def __init__(self, responses):
+    def __init__(self, responses, usage=None):
         self._responses = list(responses)
         self.call_count = 0
         self.chat = self  # allow client.chat.completions.create(...)
         self.completions = self
+        self._usage = usage
 
     def create(self, **kwargs):
         self.call_count += 1
         item = self._responses.pop(0)
         if isinstance(item, Exception):
             raise item
-        return _FakeResponse(item)
+        return _FakeResponse(item, usage=self._usage)
 
 
 DOC_SECTION = "The `login()` function accepts a `username` and `password` argument."
@@ -178,3 +183,44 @@ def test_strips_markdown_fences_from_response():
         diagnosis="d", new_code=NEW_CODE, doc_section=DOC_SECTION, model="openai/gpt-4o", client=client,
     )
     assert result.status == CorrectionStatus.PROPOSED
+
+
+def test_usage_is_captured_on_first_attempt_success():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient(
+        [_proposed_json()],
+        usage=type("U", (), {"prompt_tokens": 200, "completion_tokens": 60})(),
+    )
+    result = generate_correction(
+        diagnosis="d", new_code=NEW_CODE, doc_section=DOC_SECTION, model="openai/gpt-4o", client=client,
+    )
+    assert result.usage == TokenUsage(200, 60)
+
+
+def test_usage_accumulates_across_a_retry_not_just_the_last_attempt():
+    # Corrector can call twice (initial + retry on a bad verbatim match) —
+    # both calls really spent tokens, so both must count.
+    bad = _proposed_json(old_text="a username and password argument")  # no backticks -> triggers retry
+    good = _proposed_json()
+    client = FakeOpenAIClient(
+        [bad, good],
+        usage=type("U", (), {"prompt_tokens": 100, "completion_tokens": 30})(),
+    )
+    result = generate_correction(
+        diagnosis="d", new_code=NEW_CODE, doc_section=DOC_SECTION, model="openai/gpt-4o", client=client,
+    )
+    assert client.call_count == 2
+    assert result.usage.prompt_tokens == 200       # 100 + 100, not just the last call's 100
+    assert result.usage.completion_tokens == 60    # 30 + 30
+
+
+def test_usage_is_zeroed_on_infra_failure_before_any_response():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient([ConnectionError("simulated failure")])
+    result = generate_correction(
+        diagnosis="d", new_code=NEW_CODE, doc_section=DOC_SECTION, model="openai/gpt-4o", client=client,
+    )
+    assert result.status == CorrectionStatus.ABSTAINED_INFRA
+    assert result.usage == TokenUsage()  # no tokens spent — the call raised before a response came back

@@ -18,27 +18,32 @@ class _FakeChoice:
 
 
 class _FakeResponse:
-    def __init__(self, content):
+    def __init__(self, content, usage=None):
         self.choices = [_FakeChoice(content)]
+        self.usage = usage
 
 
 class FakeOpenAIClient:
     """Same fake-client shape as test_corrector.py's — kept duplicated rather
     than shared, since the two test files should stay independently readable
-    and this is a small, stable fixture, not shared production logic."""
+    and this is a small, stable fixture, not shared production logic.
+    `usage`, if provided, is attached to every response this client returns —
+    existing calls that don't pass it are unaffected (usage stays None,
+    which cost_tracking.usage_from_response gracefully treats as zero)."""
 
-    def __init__(self, responses):
+    def __init__(self, responses, usage=None):
         self._responses = list(responses)
         self.call_count = 0
         self.chat = self
         self.completions = self
+        self._usage = usage
 
     def create(self, **kwargs):
         self.call_count += 1
         item = self._responses.pop(0)
         if isinstance(item, Exception):
             raise item
-        return _FakeResponse(item)
+        return _FakeResponse(item, usage=self._usage)
 
 
 OLD_CODE = "def login(username, password):\n    ..."
@@ -85,3 +90,30 @@ def test_unparseable_response_fails_open_with_none_and_message():
     result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=client)
     assert result["stale"] is None
     assert "this is not json" in result["diagnosis"]
+
+
+def test_usage_is_captured_from_a_successful_response():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient(
+        [json.dumps({"stale": False, "diagnosis": "fine"})],
+        usage=type("U", (), {"prompt_tokens": 123, "completion_tokens": 45})(),
+    )
+    result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=client)
+    assert result["usage"] == TokenUsage(123, 45)
+
+
+def test_usage_is_zeroed_on_llm_call_failure():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient([ConnectionError("simulated failure")])
+    result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=client)
+    assert result["usage"] == TokenUsage()  # zeroed, not missing — no tokens were actually spent
+
+
+def test_usage_defaults_to_zero_when_fake_response_has_no_usage_field():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient([json.dumps({"stale": False, "diagnosis": "fine"})])  # no usage passed
+    result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=client)
+    assert result["usage"] == TokenUsage()

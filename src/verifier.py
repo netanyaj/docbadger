@@ -10,6 +10,7 @@ import os
 from openai import OpenAI
 
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
+from cost_tracking import usage_from_response, TokenUsage
 
 
 def _build_prompts(old_code: str, new_code: str, doc_section: str, nonce: str) -> tuple:
@@ -61,10 +62,13 @@ def _build_client() -> OpenAI:
 
 
 def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, client=None) -> dict:
-    """Returns {"stale": bool|None, "diagnosis": str}.
+    """Returns {"stale": bool|None, "diagnosis": str, "usage": TokenUsage}.
 
     stale=None signals a failure (LLM error or unparseable response) — the
     caller is responsible for fail-open handling, this function never raises.
+    usage is zeroed (TokenUsage()) if the call failed before a response came
+    back — cost tracking should never mask or interfere with the fail-open
+    behavior this function already has.
 
     `client` is optional and exists purely for test injection — production
     callers should omit it and let this build its own client. Same pattern
@@ -84,8 +88,9 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
             max_tokens=500,
         )
         raw = response.choices[0].message.content.strip()
+        usage = usage_from_response(response)
     except Exception as e:
-        return {"stale": None, "diagnosis": f"[LLM CALL FAILED: {e}]"}
+        return {"stale": None, "diagnosis": f"[LLM CALL FAILED: {e}]", "usage": TokenUsage()}
 
     if raw.startswith("```"):
         raw = raw.strip("`")
@@ -95,6 +100,6 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
 
     try:
         parsed = json.loads(raw)
-        return {"stale": parsed.get("stale"), "diagnosis": parsed.get("diagnosis", "")}
+        return {"stale": parsed.get("stale"), "diagnosis": parsed.get("diagnosis", ""), "usage": usage}
     except json.JSONDecodeError:
-        return {"stale": None, "diagnosis": f"[UNPARSEABLE RESPONSE: {raw[:200]}]"}
+        return {"stale": None, "diagnosis": f"[UNPARSEABLE RESPONSE: {raw[:200]}]", "usage": usage}

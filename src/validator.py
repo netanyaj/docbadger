@@ -35,12 +35,13 @@ diff," not "we withhold it from you entirely."
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
 from verifier import _build_client
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
+from cost_tracking import usage_from_response, TokenUsage
 
 
 class ValidationStatus(str, Enum):
@@ -58,6 +59,7 @@ class ValidatorResult:
     old_text: str      # echoed back unchanged — always present, for the comment to render
     new_text: str       # echoed back unchanged — always present, for the comment to render
     rationale: str       # always populated: why approved, or why rejected/unvalidated
+    usage: TokenUsage = field(default_factory=TokenUsage)   # zeroed for REJECTED_STRUCTURAL — no LLM call made
 
 
 def _build_prompts(new_code: str, doc_section: str, old_text: str, new_text: str, nonce: str) -> tuple:
@@ -139,9 +141,10 @@ def _check_structural(doc_section: str, old_text: str, new_text: str) -> Optiona
     return None
 
 
-def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> str:
+def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> tuple:
     """Raises on API failure — caller handles fail-open, same division of
-    responsibility as verifier.judge_staleness and corrector.generate_correction."""
+    responsibility as verifier.judge_staleness and corrector.generate_correction.
+    Returns (raw_text, usage)."""
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -157,7 +160,7 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> str:
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
-    return raw
+    return raw, usage_from_response(response)
 
 
 def _parse_response(raw: str) -> dict:
@@ -196,13 +199,14 @@ def validate_correction(
     system_prompt, user_prompt = _build_prompts(new_code, doc_section, old_text, new_text, nonce)
 
     try:
-        raw = _call_llm(system_prompt, user_prompt, model, client)
+        raw, usage = _call_llm(system_prompt, user_prompt, model, client)
     except Exception as e:
         return ValidatorResult(
             status=ValidationStatus.ERROR_INFRA,
             old_text=old_text,
             new_text=new_text,
             rationale=f"[LLM CALL FAILED: {e}] — proposal not validated, treat with caution.",
+            usage=TokenUsage(),  # no tokens spent — the call raised before a response came back
         )
 
     try:
@@ -213,6 +217,7 @@ def validate_correction(
             old_text=old_text,
             new_text=new_text,
             rationale=f"Validator response could not be parsed: {e} — proposal not validated, treat with caution.",
+            usage=usage,
         )
 
     status_map = {
@@ -225,4 +230,5 @@ def validate_correction(
         old_text=old_text,
         new_text=new_text,
         rationale=data["rationale"],
+        usage=usage,
     )

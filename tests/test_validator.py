@@ -18,23 +18,25 @@ class _FakeChoice:
 
 
 class _FakeResponse:
-    def __init__(self, content):
+    def __init__(self, content, usage=None):
         self.choices = [_FakeChoice(content)]
+        self.usage = usage
 
 
 class FakeOpenAIClient:
-    def __init__(self, responses):
+    def __init__(self, responses, usage=None):
         self._responses = list(responses)
         self.call_count = 0
         self.chat = self
         self.completions = self
+        self._usage = usage
 
     def create(self, **kwargs):
         self.call_count += 1
         item = self._responses.pop(0)
         if isinstance(item, Exception):
             raise item
-        return _FakeResponse(item)
+        return _FakeResponse(item, usage=self._usage)
 
 
 NEW_CODE = "def login(username, password, mfa_token):\n    ..."
@@ -115,3 +117,33 @@ def test_strips_markdown_fences_from_response():
     client = FakeOpenAIClient([fenced])
     result = validate_correction(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, model="openai/gpt-4o", client=client)
     assert result.status == ValidationStatus.APPROVED
+
+
+def test_usage_is_captured_on_approval():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient(
+        [_llm_json("approved")],
+        usage=type("U", (), {"prompt_tokens": 80, "completion_tokens": 25})(),
+    )
+    result = validate_correction(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, model="openai/gpt-4o", client=client)
+    assert result.usage == TokenUsage(80, 25)
+
+
+def test_usage_is_zeroed_on_structural_rejection_since_no_llm_call_is_made():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient([])  # no response scripted — proves the LLM is never called
+    bad_new_text = "`username`, `password`, and `mfa_token` arguments`"  # trailing unbalanced backtick
+    result = validate_correction(NEW_CODE, DOC_SECTION, OLD_TEXT, bad_new_text, model="openai/gpt-4o", client=client)
+    assert result.status == ValidationStatus.REJECTED_STRUCTURAL
+    assert result.usage == TokenUsage()
+    assert client.call_count == 0
+
+
+def test_usage_is_zeroed_on_infra_failure():
+    from cost_tracking import TokenUsage
+
+    client = FakeOpenAIClient([ConnectionError("simulated failure")])
+    result = validate_correction(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, model="openai/gpt-4o", client=client)
+    assert result.usage == TokenUsage()

@@ -79,3 +79,17 @@ def test_feedback_block_omitted_for_verified_entries_even_with_pr_context():
         pr_number=42, repo_full_name="owner/repo",
     )
     assert "Was this assessment correct?" not in body
+
+
+def test_cost_lines_are_included_when_provided():
+    body = build_final_comment(
+        meaningful_count=1, comment_entries=[], error_count=0,
+        cost_lines=["- Estimated cost this run: **$0.0045** (600 tokens)", "  - Verifier: 600 tokens"],
+    )
+    assert "Estimated cost this run" in body
+    assert "$0.0045" in body
+
+
+def test_cost_lines_omitted_when_not_provided():
+    body = build_final_comment(meaningful_count=1, comment_entries=[], error_count=0)
+    assert "Estimated cost" not in body

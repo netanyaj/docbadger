@@ -30,12 +30,13 @@ Design contract (Engineering Decision Log Entries 23-26, 38):
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
 from verifier import _build_client
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
+from cost_tracking import usage_from_response, TokenUsage
 
 
 # Characters models routinely normalize away when "quoting" prose — a
@@ -95,6 +96,7 @@ class CorrectorResult:
     old_text: Optional[str]      # populated only when status == PROPOSED
     new_text: Optional[str]      # populated only when status == PROPOSED
     rationale: str                # always populated: why this rewrite, or why abstaining
+    usage: TokenUsage = field(default_factory=TokenUsage)   # summed across all attempts (initial + any retry)
 
 
 def _build_prompts(diagnosis: str, new_code: str, doc_section: str, nonce: str) -> tuple:
@@ -157,9 +159,10 @@ character-for-character, or respond with status "abstained_diagnosis" if no
 such span exists."""
 
 
-def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> str:
+def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> tuple:
     """Raises on API failure — caller is responsible for fail-open handling,
-    same division of responsibility as verifier.judge_staleness."""
+    same division of responsibility as verifier.judge_staleness. Returns
+    (raw_text, usage)."""
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -175,7 +178,7 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> str:
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
-    return raw
+    return raw, usage_from_response(response)
 
 
 def _parse_response(raw: str) -> dict:
@@ -205,18 +208,22 @@ def generate_correction(
     client = client or _build_client()
     nonce = new_nonce()
     system_prompt, user_prompt = _build_prompts(diagnosis, new_code, doc_section, nonce)
+    total_usage = TokenUsage()
 
     for attempt in range(2):  # one initial attempt + one retry on format failure
         try:
-            raw = _call_llm(system_prompt, user_prompt, model, client)
+            raw, call_usage = _call_llm(system_prompt, user_prompt, model, client)
+            total_usage = total_usage + call_usage
         except Exception as e:
             # Infra/API failure — fail open immediately, no retry, mirroring
-            # judge_staleness's handling of the same failure class.
+            # judge_staleness's handling of the same failure class. No tokens
+            # were actually spent on a call that raised before returning.
             return CorrectorResult(
                 status=CorrectionStatus.ABSTAINED_INFRA,
                 old_text=None,
                 new_text=None,
                 rationale=f"[LLM CALL FAILED: {e}]",
+                usage=total_usage,
             )
 
         try:
@@ -228,6 +235,7 @@ def generate_correction(
                     old_text=None,
                     new_text=None,
                     rationale=f"Corrector output could not be parsed after retry: {e}",
+                    usage=total_usage,
                 )
             user_prompt += RETRY_SUFFIX
             continue
@@ -238,6 +246,7 @@ def generate_correction(
                 old_text=None,
                 new_text=None,
                 rationale=data["rationale"],
+                usage=total_usage,
             )
 
         # status == proposed: verify old_text is actually verbatim in doc_section
@@ -251,6 +260,7 @@ def generate_correction(
                 old_text=located,
                 new_text=data["new_text"],
                 rationale=data["rationale"],
+                usage=total_usage,
             )
 
         if attempt == 1:
@@ -263,6 +273,7 @@ def generate_correction(
                     "could not be located verbatim in the current doc section, "
                     "even after a retry."
                 ),
+                usage=total_usage,
             )
         user_prompt += RETRY_SUFFIX
 

@@ -54,7 +54,7 @@ _KIND_HEADERS = {
 
 def build_final_comment(
     meaningful_count: int, comment_entries: list, error_count: int,
-    pr_number: int = None, repo_full_name: str = None,
+    pr_number: int = None, repo_full_name: str = None, cost_lines: list = None,
 ) -> str:
     """Milestone 4's complete summary comment, built from an
     output_orchestrator.OrchestrationPlan's comment_entries — supersedes
@@ -72,6 +72,10 @@ def build_final_comment(
     repo_full_name are only needed to embed traceable context in that block's
     hidden snapshot; omit them (leave as None) for callers that don't need
     feedback capture (e.g. existing tests of this function's core format).
+
+    Milestone 6, Thread 2: cost_lines (from cost_tracking.format_cost_comment_lines)
+    is optional — omit it for callers that don't need cost reporting (e.g.
+    existing tests of this function's core format).
     """
     stale_kinds = {"flagged_low_confidence", "flagged_abstained", "flagged_rejected", "correction_ready"}
     stale_count = sum(1 for e in comment_entries if e.kind in stale_kinds)
@@ -87,6 +91,8 @@ def build_final_comment(
     ]
     if error_count:
         lines.append(f"- Checks that could not complete: **{error_count}** (see logs)")
+    if cost_lines:
+        lines.extend(cost_lines)
     lines.append("")
 
     if not comment_entries:

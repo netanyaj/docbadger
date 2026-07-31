@@ -28,6 +28,7 @@ from corrector import generate_correction, CorrectionStatus
 from validator import validate_correction
 from output_orchestrator import PipelineFinding, build_orchestration_plan
 from comment_builder import build_final_comment
+from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative
 
 
 def _fail(message: str) -> None:
@@ -91,11 +92,13 @@ def main():
         return
 
     findings = []  # list of PipelineFinding
+    cost_summary = RunCostSummary(model=model)
     for fn in meaningful:
         linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
         for section_id in linked_section_ids:
             section = index["doc_sections"][section_id]
             verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
+            cost_summary.add("verifier", verdict["usage"])
 
             if verdict["stale"] is not True:
                 # False (verified accurate) or None (verifier error) — nothing
@@ -130,6 +133,7 @@ def main():
                 doc_section=section.text,
                 model=model,
             )
+            cost_summary.add("corrector", corrector_result.usage)
 
             validator_result = None
             if corrector_result.status == CorrectionStatus.PROPOSED:
@@ -140,6 +144,7 @@ def main():
                     new_text=corrector_result.new_text,
                     model=model,
                 )
+                cost_summary.add("validator", validator_result.usage)
 
             findings.append(PipelineFinding(
                 filepath=section.filepath,
@@ -161,11 +166,23 @@ def main():
     _set_output("known_links_checked", len(findings))
     _set_output("stale_sections_found", stale_count)
     _set_output("corrections_proposed", sum(1 for e in plan.comment_entries if e.kind == "correction_ready"))
+    _set_output("estimated_cost_usd", f"{cost_summary.total_cost_usd:.4f}")
+
+    cumulative_cost_usd, cumulative_run_count = None, None
+    try:
+        cumulative_cost_usd, cumulative_run_count = append_run_and_get_cumulative(cost_summary)
+    except Exception as e:
+        # Fail-open per Engineering Decision Log Entry 4/35: a cost-log
+        # publish failure must never block the summary comment.
+        print(f"Could not persist cost log: {e}", file=sys.stderr)
+
+    cost_lines = format_cost_comment_lines(cost_summary, cumulative_cost_usd, cumulative_run_count)
 
     github_token = os.environ.get("GITHUB_TOKEN")
     comment_body = build_final_comment(
         len(meaningful), plan.comment_entries, error_count,
         pr_number=pr_number, repo_full_name=repo_full_name,
+        cost_lines=cost_lines,
     )
     print(comment_body)
 
