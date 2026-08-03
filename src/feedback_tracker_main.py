@@ -112,13 +112,28 @@ def persist_snapshots(snapshots: list) -> None:
 
 
 def main():
+    import subprocess
+
     event_path = os.environ["GITHUB_EVENT_PATH"]
     bot_login = os.environ.get("DOCBADGER_BOT_LOGIN", "github-actions[bot]")
     with open(event_path) as f:
         event = json.load(f)
 
     snapshots = build_snapshots_from_event(event, bot_login)
-    persist_snapshots(snapshots)
+    try:
+        persist_snapshots(snapshots)
+    except subprocess.CalledProcessError as e:
+        # capture_output=True in index_branch_sync._run already captures the
+        # real git stderr — it just never got printed anywhere, leaving only
+        # a generic "exit status 1" with no way to actually diagnose it
+        # (found from a real failure with no informative message). Surface
+        # it explicitly so a real cause (permissions, branch protection,
+        # a stale ref) is visible immediately, not guessed at blind.
+        print(f"git command failed: {' '.join(e.cmd)}", file=sys.stderr)
+        print(f"stderr: {e.stderr}", file=sys.stderr)
+        print(f"stdout: {e.stdout}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Processed {len(snapshots)} feedback snapshot(s).")
 
 
