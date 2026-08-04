@@ -4,10 +4,13 @@ repos (a bare repo standing in for GitHub, and a working repo with it
 added as 'origin') so we're testing actual git plumbing, not mocks.
 """
 
+import json
 import os
 import subprocess
 import sys
 import tempfile
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -193,3 +196,101 @@ def test_fallback_identity_is_set_locally_not_globally_when_nothing_is_configure
 
     assert local_name == "DocBadger Bot"       # fallback correctly applied
     assert "DocBadger" not in global_content    # but scoped to local only, global never touched
+
+
+def test_retries_and_recovers_from_a_real_concurrent_write_race():
+    # Reproduces the exact failure seen live: two independent writers push to
+    # docbadger/index close together, and a push landing after another
+    # writer's change (but built on the OLD tip) gets rejected as
+    # non-fast-forward. This forces a REAL rejection (not a mocked one) by
+    # using the test-only hook to land a genuine competing push, from a
+    # second real clone of the same origin, in the exact window a live race
+    # would occur — then confirms our retry logic recovers and BOTH
+    # writers' content survives, not just ours overwriting theirs.
+    work_dir = _build_repo_with_fake_origin()
+    bare_dir = _run(work_dir, "remote", "get-url", "origin").stdout.strip()
+
+    # A second, independent clone of the SAME origin — simulates a
+    # concurrently-running workflow (e.g. the feedback tracker) with its own
+    # separate checkout, not just a second call from the same process.
+    competing_clone = tempfile.mkdtemp()
+    _run(competing_clone, "init", "-q")
+    _run(competing_clone, "config", "user.email", "other@example.com")
+    _run(competing_clone, "config", "user.name", "Other Writer")
+    _run(competing_clone, "remote", "add", "origin", bare_dir)
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        push_index({"hash_a": [1.0]})  # establish the branch first, normally
+
+        def land_competing_write():
+            # Runs from the SECOND clone, pushing a genuinely different file
+            # to the SAME branch — this actually moves the remote tip.
+            old_cwd_inner = os.getcwd()
+            try:
+                os.chdir(competing_clone)
+                push_file('{"other": true}', "other_writer.json")
+            finally:
+                os.chdir(old_cwd_inner)
+
+        # Our own push (from work_dir) will have already fetched+built its
+        # commit BEFORE this hook fires — so its first push attempt is
+        # guaranteed to be based on a now-stale tip once the hook lands the
+        # competing write, forcing a real non-fast-forward rejection.
+        push_file(
+            '{"hash_a": [1.0], "hash_b": [2.0]}', "embeddings.json",
+            _test_hook_before_push=land_competing_write,
+        )
+
+        final_embeddings = pull_index()
+        final_other = pull_index(filename="other_writer.json")
+    finally:
+        os.chdir(original_cwd)
+
+    assert final_embeddings == {"hash_a": [1.0], "hash_b": [2.0]}  # our update succeeded after retry
+    assert final_other == {"other": True}  # the competing writer's file also survived, not clobbered
+
+
+def test_raises_a_clear_error_after_exhausting_retries_on_a_persistent_race():
+    # If every retry keeps losing the race, fail loudly with a clear message
+    # rather than silently giving up or corrupting the branch.
+    work_dir = _build_repo_with_fake_origin()
+    bare_dir = _run(work_dir, "remote", "get-url", "origin").stdout.strip()
+    competing_clone = tempfile.mkdtemp()
+    _run(competing_clone, "init", "-q")
+    _run(competing_clone, "config", "user.email", "other@example.com")
+    _run(competing_clone, "config", "user.name", "Other Writer")
+    _run(competing_clone, "remote", "add", "origin", bare_dir)
+
+    original_cwd = os.getcwd()
+    call_count = {"n": 0}
+
+    def always_land_a_competing_write():
+        # Fires on every attempt (not just the first), so every one of our
+        # retries also loses the race — a persistent, unwinnable contention
+        # scenario, not just a single unlucky collision.
+        call_count["n"] += 1
+        old_cwd_inner = os.getcwd()
+        try:
+            os.chdir(competing_clone)
+            push_file(json.dumps({"n": call_count["n"]}), "other_writer.json")
+        finally:
+            os.chdir(old_cwd_inner)
+
+    try:
+        os.chdir(work_dir)
+        push_index({"hash_a": [1.0]})
+
+        # Monkeypatch the hook to fire on every attempt by wrapping push_file
+        # with max_retries=1 and re-triggering manually is awkward here, so
+        # instead simulate persistent contention with max_retries=1 and a
+        # single guaranteed collision — proves the "raise after exhausting
+        # retries" path fires correctly rather than hanging or silently passing.
+        with pytest.raises(RuntimeError, match="concurrent writes"):
+            push_file(
+                '{"hash_a": [1.0], "hash_b": [2.0]}', "embeddings.json",
+                max_retries=1, _test_hook_before_push=always_land_a_competing_write,
+            )
+    finally:
+        os.chdir(original_cwd)

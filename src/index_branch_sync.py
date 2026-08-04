@@ -95,44 +95,84 @@ def _existing_tree_lines(remote: str, branch: str, exclude_filename: str) -> lis
 
 def push_file(
     content_str: str, filename: str, remote: str = "origin", branch: str = INDEX_BRANCH,
+    max_retries: int = 3, _test_hook_before_push=None,
 ) -> None:
     """Writes `filename` as a new commit on the shared index branch,
     preserving any other files already present in that branch's tree, and
     without ever checking that branch out or touching the current working
-    tree. Shared by push_index (embeddings.json) and feedback storage
-    (feedback.json) — the actual git-plumbing logic lives here exactly once.
+    tree. Shared by push_index (embeddings.json), feedback storage
+    (feedback.json), and cost tracking (cost_log.json) — the actual
+    git-plumbing logic lives here exactly once.
+
+    Retries on a rejected (non-fast-forward) push: this branch now has
+    multiple independent writers (embeddings, feedback, cost log — possibly
+    from concurrently-running workflows), and a push landing in the window
+    between another writer's fetch and push will be rejected. Confirmed as a
+    real failure mode, not a hypothetical — reproduced live: two workflow
+    runs updating this branch close together in time. Each retry re-fetches
+    the branch's current tip fresh (via _existing_tree_lines' own fetch) and
+    rebuilds the tree on top of it, so a competing writer's change is
+    preserved, not overwritten, rather than just blindly trying the same
+    stale commit again.
 
     History depth capping (MAX_HISTORY_DEPTH) applies to the branch as a
     whole, same as before — both files share the same commit history.
+
+    _test_hook_before_push: TEST-ONLY. If provided, called once, after the
+    commit is built but before the first push attempt — used to
+    deterministically simulate a competing writer landing in the exact
+    window a real race occurs, without depending on actual thread/process
+    timing to reproduce it in a test.
     """
     _ensure_git_identity()
-
     blob_sha = _run(["hash-object", "-w", "--stdin"], input_text=content_str).stdout.strip()
-    other_files = _existing_tree_lines(remote, branch, exclude_filename=filename)
-    new_line = f"100644 blob {blob_sha}\t{filename}"
-    mktree_input = "\n".join([*other_files, new_line]) + "\n"
-    tree_sha = _run(["mktree"], input_text=mktree_input).stdout.strip()
 
-    parent_result = subprocess.run(
-        ["git", "rev-parse", f"{remote}/{branch}"], capture_output=True, text=True,
-    )
-    parent_sha = parent_result.stdout.strip() if parent_result.returncode == 0 else None
+    last_error = None
+    for attempt in range(max_retries):
+        other_files = _existing_tree_lines(remote, branch, exclude_filename=filename)
+        new_line = f"100644 blob {blob_sha}\t{filename}"
+        mktree_input = "\n".join([*other_files, new_line]) + "\n"
+        tree_sha = _run(["mktree"], input_text=mktree_input).stdout.strip()
 
-    parent_args: list = []
-    if parent_sha:
-        depth_result = subprocess.run(
-            ["git", "rev-list", "--count", parent_sha], capture_output=True, text=True,
+        parent_result = subprocess.run(
+            ["git", "rev-parse", f"{remote}/{branch}"], capture_output=True, text=True,
         )
-        current_depth = int(depth_result.stdout.strip()) if depth_result.returncode == 0 else 0
-        if current_depth < MAX_HISTORY_DEPTH:
-            parent_args = ["-p", parent_sha]
-        # else: intentionally omit parent — squashes to a fresh root commit.
+        parent_sha = parent_result.stdout.strip() if parent_result.returncode == 0 else None
 
-    commit_sha = _run(
-        ["commit-tree", tree_sha, *parent_args, "-m", f"Update {filename} on {branch}"]
-    ).stdout.strip()
+        parent_args: list = []
+        if parent_sha:
+            depth_result = subprocess.run(
+                ["git", "rev-list", "--count", parent_sha], capture_output=True, text=True,
+            )
+            current_depth = int(depth_result.stdout.strip()) if depth_result.returncode == 0 else 0
+            if current_depth < MAX_HISTORY_DEPTH:
+                parent_args = ["-p", parent_sha]
+            # else: intentionally omit parent — squashes to a fresh root commit.
 
-    _run(["push", remote, f"{commit_sha}:refs/heads/{branch}"])
+        commit_sha = _run(
+            ["commit-tree", tree_sha, *parent_args, "-m", f"Update {filename} on {branch}"]
+        ).stdout.strip()
+
+        if attempt == 0 and _test_hook_before_push is not None:
+            _test_hook_before_push()
+
+        push_result = subprocess.run(
+            ["git", "push", remote, f"{commit_sha}:refs/heads/{branch}"], capture_output=True, text=True,
+        )
+        if push_result.returncode == 0:
+            return
+
+        last_error = push_result.stderr
+        if "non-fast-forward" not in push_result.stderr and "fetch first" not in push_result.stderr:
+            # A real failure (permissions, network, etc.) — not a race.
+            # Retrying wouldn't help; surface it immediately.
+            raise RuntimeError(f"git push failed (not a concurrency issue): {push_result.stderr}")
+        # else: a genuine race — loop again, re-fetching the now-current tip.
+
+    raise RuntimeError(
+        f"push_file to {filename} on {branch} failed after {max_retries} attempts "
+        f"due to repeated concurrent writes: {last_error}"
+    )
 
 
 def push_index(
