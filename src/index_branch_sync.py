@@ -26,9 +26,23 @@ def _run(args: list[str], input_text: str = None, check: bool = True) -> subproc
 
 def pull_index(remote: str = "origin", branch: str = INDEX_BRANCH, filename: str = INDEX_FILENAME) -> dict:
     """Returns the cache dict stored on the index branch, or {} if the
-    branch doesn't exist yet (first-ever run) or the file isn't found."""
+    branch doesn't exist yet (first-ever run) or the file isn't found.
+
+    Uses an explicit `+branch:refs/remotes/remote/branch` refspec, not a
+    bare `git fetch remote branch` — the latter only reliably updates the
+    local tracking ref if the repo's remote.origin.fetch config already maps
+    it there, which a normal `git clone` sets up automatically but
+    actions/checkout@v4 does NOT (it configures a deliberately narrow,
+    shallow fetch scoped to the specific commit/branch it needs — confirmed
+    live: a real CI run using the bare-fetch form saw a rejected push
+    identically on all 3 retries, meaning rev-parse was resolving a stale
+    or missing tracking ref every single attempt, not hitting a genuine
+    repeated race). The explicit form with a `+` prefix force-updates the
+    tracking ref regardless of ambient config, in any environment.
+    """
     fetch = subprocess.run(
-        ["git", "fetch", remote, branch], capture_output=True, text=True,
+        ["git", "fetch", remote, f"+{branch}:refs/remotes/{remote}/{branch}"],
+        capture_output=True, text=True,
     )
     if fetch.returncode != 0:
         return {}  # branch doesn't exist remotely yet — first run
@@ -74,8 +88,15 @@ def _existing_tree_lines(remote: str, branch: str, exclude_filename: str) -> lis
     on the same branch (e.g. embeddings.json) — the original version of
     this module always built a brand-new single-file tree, which would have
     wiped out any co-existing file the moment Milestone 6 put a second kind
-    of durable state (feedback.json) on this same branch (Entry 43)."""
-    fetch = subprocess.run(["git", "fetch", remote, branch], capture_output=True, text=True)
+    of durable state (feedback.json) on this same branch (Entry 43).
+
+    Same explicit `+branch:refs/remotes/remote/branch` fetch as pull_index —
+    see that function's docstring for why a bare `git fetch remote branch`
+    isn't reliable across environments (Entry 64)."""
+    fetch = subprocess.run(
+        ["git", "fetch", remote, f"+{branch}:refs/remotes/{remote}/{branch}"],
+        capture_output=True, text=True,
+    )
     if fetch.returncode != 0:
         return []  # branch doesn't exist remotely yet
     ls = subprocess.run(

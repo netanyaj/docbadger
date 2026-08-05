@@ -294,3 +294,30 @@ def test_raises_a_clear_error_after_exhausting_retries_on_a_persistent_race():
             )
     finally:
         os.chdir(original_cwd)
+
+
+def test_pull_and_push_work_without_a_configured_fetch_refspec():
+    # `git remote add origin <url>` (used by _build_repo_with_fake_origin)
+    # sets up the standard wildcard fetch refspec automatically — but
+    # actions/checkout@v4 configures a deliberately narrower fetch (visible
+    # in a real CI log: `fetch --depth=1 origin +<sha>:refs/remotes/origin/main`,
+    # not the standard wildcard). This reproduces that narrower environment
+    # by explicitly clearing the default refspec, proving the explicit
+    # `+branch:refs/remotes/remote/branch` fetch doesn't depend on it being
+    # present. This was the actual root cause of a real CI failure: repeated
+    # IDENTICAL rejections across all 3 retries — not a genuine repeated
+    # race, but rev-parse/ls-tree silently resolving a stale or missing
+    # tracking ref on every single attempt (Entry 64).
+    work_dir = _build_repo_with_fake_origin()
+    _run(work_dir, "config", "--unset-all", "remote.origin.fetch")
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        push_index({"hash_a": [1.0]})           # first push — creates the branch
+        push_index({"hash_a": [1.0], "hash_b": [2.0]})   # second push — must correctly see the first
+        result = pull_index()
+    finally:
+        os.chdir(original_cwd)
+
+    assert result == {"hash_a": [1.0], "hash_b": [2.0]}
