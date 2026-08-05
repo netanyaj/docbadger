@@ -177,9 +177,20 @@ def push_file(
         if attempt == 0 and _test_hook_before_push is not None:
             _test_hook_before_push()
 
-        push_result = subprocess.run(
-            ["git", "push", remote, f"{commit_sha}:refs/heads/{branch}"], capture_output=True, text=True,
-        )
+        # A squash commit (parent intentionally omitted, see above) has no
+        # parent at all, so it can NEVER be a fast-forward of a branch that
+        # already has real history — a plain push would be rejected every
+        # single time, indefinitely, no matter how many times we retry.
+        # This isn't a race to recover from; it's our own deliberate history
+        # reset, so --force is the correct and safe way to land it: the tree
+        # itself still preserves every currently-live file's content (all of
+        # them, not just this one — see _existing_tree_lines), only the OLD
+        # COMMIT CHAIN is discarded, which is exactly Entry 19's intent.
+        # Normal (non-squash) pushes are never forced — a real, unrelated
+        # rejection there should surface or retry, not be silently overwritten.
+        is_squash = not parent_args
+        push_args = ["push"] + (["--force"] if is_squash else []) + [remote, f"{commit_sha}:refs/heads/{branch}"]
+        push_result = subprocess.run(["git", *push_args], capture_output=True, text=True)
         if push_result.returncode == 0:
             return
 

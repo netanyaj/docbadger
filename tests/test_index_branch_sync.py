@@ -321,3 +321,65 @@ def test_pull_and_push_work_without_a_configured_fetch_refspec():
         os.chdir(original_cwd)
 
     assert result == {"hash_a": [1.0], "hash_b": [2.0]}
+
+
+def test_squash_at_history_depth_cap_actually_succeeds():
+    # Reproduces the exact real failure: once the branch reaches
+    # MAX_HISTORY_DEPTH commits, the next push must squash to a fresh root
+    # commit (no parent) — but a rootless commit can NEVER be a fast-forward
+    # of a branch with real existing history, so a plain (non-forced) push
+    # of it was rejected every time, with retries never able to help since
+    # every retry recomputes the same kind of unpushable rootless commit.
+    # Confirmed live: a real branch that organically reached exactly 10
+    # commits started failing every subsequent push identically. This drives
+    # a real branch to the cap (monkeypatched low for a fast test) and
+    # confirms the squash commit now actually lands.
+    import index_branch_sync
+    original_depth = index_branch_sync.MAX_HISTORY_DEPTH
+    index_branch_sync.MAX_HISTORY_DEPTH = 3
+    try:
+        work_dir = _build_repo_with_fake_origin()
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(work_dir)
+            # Push enough times to exceed the (lowered) cap.
+            for i in range(5):
+                push_index({"hash_a": [float(i)]})
+            result = pull_index()
+
+            log = _run(work_dir, "log", "--oneline", "origin/docbadger/index").stdout.strip()
+        finally:
+            os.chdir(original_cwd)
+    finally:
+        index_branch_sync.MAX_HISTORY_DEPTH = original_depth
+
+    assert result == {"hash_a": [4.0]}  # the final push's content actually landed
+    # History was genuinely reset at least once — total commits stays bounded,
+    # not growing unboundedly to 5+.
+    assert len(log.splitlines()) <= 3
+
+
+def test_squash_preserves_other_files_content_even_though_history_resets():
+    # The squash resets commit HISTORY, but must not lose other files'
+    # CONTENT — _existing_tree_lines re-fetches and rebuilds the tree fresh
+    # on every attempt, so the currently-live content of every file is
+    # preserved even when the commit chain itself starts over.
+    import index_branch_sync
+    original_depth = index_branch_sync.MAX_HISTORY_DEPTH
+    index_branch_sync.MAX_HISTORY_DEPTH = 2
+    try:
+        work_dir = _build_repo_with_fake_origin()
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(work_dir)
+            push_file('{"feedback": "a"}', "feedback.json")
+            for i in range(4):  # push past the (lowered) cap on a DIFFERENT file
+                push_index({"hash_a": [float(i)]})
+
+            feedback_result = pull_index(filename="feedback.json")
+        finally:
+            os.chdir(original_cwd)
+    finally:
+        index_branch_sync.MAX_HISTORY_DEPTH = original_depth
+
+    assert feedback_result == {"feedback": "a"}  # survived the squash intact
