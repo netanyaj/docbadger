@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from verifier import _build_client
+from llm_client import _build_client, call_with_rate_limit_retry
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 from cost_tracking import usage_from_response, TokenUsage
 
@@ -145,7 +145,7 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> tuple
     """Raises on API failure — caller handles fail-open, same division of
     responsibility as verifier.judge_staleness and corrector.generate_correction.
     Returns (raw_text, usage)."""
-    response = client.chat.completions.create(
+    response = call_with_rate_limit_retry(lambda: client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -153,7 +153,7 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str, client) -> tuple
         ],
         temperature=0,
         max_tokens=400,
-    )
+    ))
     raw = response.choices[0].message.content.strip()
     if raw.startswith("```"):
         raw = raw.strip("`")

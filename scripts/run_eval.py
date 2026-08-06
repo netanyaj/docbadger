@@ -6,13 +6,15 @@ Runs the REAL pipeline (Verifier -> Corrector -> Validator) against every
 case in eval/dataset/*.json and reports how actual output compares to each
 case's expected labels.
 
-This makes real OpenRouter API calls and costs real tokens — it is
-intentionally a manual script, not part of CI/the test suite. Requires a
-real LLM_API_KEY in the environment, same as production (main.py).
+This makes real API calls (to whichever provider LLM_PROVIDER selects —
+see llm_client.py) and costs real tokens — it is intentionally a manual
+script, not part of CI/the test suite. Requires a real API key for the
+active provider in the environment, same as production (main.py).
 
 Usage:
     LLM_API_KEY=sk-... python scripts/run_eval.py
     LLM_API_KEY=sk-... LLM_MODEL=openai/gpt-4o python scripts/run_eval.py --verbose
+    LLM_PROVIDER=gemini GEMINI_API_KEY=... LLM_MODEL=gemini-2.5-flash python scripts/run_eval.py
 
     # Validate every case file's schema without spending any tokens:
     python scripts/run_eval.py --lint-only
@@ -29,6 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from verifier import judge_staleness
 from corrector import generate_correction, CorrectionStatus
 from validator import validate_correction
+from llm_client import current_provider, required_api_key_env
 
 DATASET_DIR = os.path.join(os.path.dirname(__file__), "..", "eval", "dataset")
 REQUIRED_KEYS = {"id", "old_code", "new_code", "stale_doc_section", "labels"}
@@ -154,8 +157,10 @@ def main():
                 print(f"✅ {filename}")
         sys.exit(1 if any_problems else 0)
 
-    if "LLM_API_KEY" not in os.environ:
-        print("ERROR: LLM_API_KEY not set. This harness makes real API calls "
+    required_key = required_api_key_env()
+    if required_key not in os.environ:
+        print(f"ERROR: {required_key} not set (required for LLM_PROVIDER="
+              f"'{current_provider()}'). This harness makes real API calls "
               "and needs a real key, same as running the Action itself.", file=sys.stderr)
         print("Tip: run with --lint-only first to check case files for free.", file=sys.stderr)
         sys.exit(1)

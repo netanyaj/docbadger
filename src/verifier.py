@@ -5,12 +5,10 @@ script.
 """
 
 import json
-import os
-
-from openai import OpenAI
 
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 from cost_tracking import usage_from_response, TokenUsage
+from llm_client import _build_client, call_with_rate_limit_retry
 
 
 def _build_prompts(old_code: str, new_code: str, doc_section: str, nonce: str) -> tuple:
@@ -56,11 +54,6 @@ Is the documentation section now stale relative to the new code?"""
     return system, user
 
 
-def _build_client() -> OpenAI:
-    api_key = os.environ["LLM_API_KEY"]
-    return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
-
-
 def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, client=None) -> dict:
     """Returns {"stale": bool|None, "diagnosis": str, "usage": TokenUsage}.
 
@@ -78,7 +71,7 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
     nonce = new_nonce()
     system_prompt, user_prompt = _build_prompts(old_code, new_code, doc_section, nonce)
     try:
-        response = client.chat.completions.create(
+        response = call_with_rate_limit_retry(lambda: client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -86,7 +79,7 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
             ],
             temperature=0,
             max_tokens=500,
-        )
+        ))
         raw = response.choices[0].message.content.strip()
         usage = usage_from_response(response)
     except Exception as e:
