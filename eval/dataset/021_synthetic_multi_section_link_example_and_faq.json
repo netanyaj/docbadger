@@ -1,0 +1,19 @@
+{
+  "id": "021_synthetic_multi_section_link_example_and_faq",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second multi-section-link case, same shape as 020 (an Example section plus a separate FAQ-style section), different domain, to get n=2 on this newly-identified gap category before deciding whether it needs dedicated harness/pipeline support."
+  },
+  "old_code": "def close(self, timeout=None):\n    ...",
+  "new_code": "def close(self, timeout=None, force=False):\n    ...",
+  "stale_doc_section_example": "## Example\n\n```python\nclient.close()\n```",
+  "stale_doc_section": "## FAQ\n\n**Does `close()` ever block indefinitely?** No -- if `timeout` is not\nreached, `close()` will wait for in-flight requests to finish before\nreturning, with no way to interrupt this early.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run) for the FAQ section only (the one recorded as stale_doc_section) -- clean, accurate proposed/approved fix ('with no way to interrupt this early' -> 'unless force=True is passed'). Same harness-gap caveat as case 020: the Example section (stale_doc_section_example) was never run through the pipeline at all."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "020_synthetic_multi_section_link_quickstart_and_reference",
+  "source": {
+    "type": "synthetic",
+    "rationale": "New gap category, distinct from the single-section multi-SPAN gap (001/006/024/025): here ONE code change is documented in TWO separate, non-adjacent doc SECTIONS (a Quickstart example early in the doc, and a later Reference/Parameters section) that are not ancestor/descendant of each other, so Entry 17's ancestor-dedup logic should NOT collapse them -- both should link independently. Tests whether the pipeline finds and processes both sections, and whether the Corrector's per-finding (not per-doc) design naturally handles this by producing two separate findings, or whether something merges/drops one."
+  },
+  "old_code": "def snapshot(path):\n    ...",
+  "new_code": "def snapshot(path, incremental=False):\n    ...",
+  "stale_doc_section_quickstart": "## Quickstart\n\n```python\nsnapshot(\"/data\")\n```",
+  "stale_doc_section": "## Reference\n\n### Parameters\n\n* `path` -- directory to snapshot.\n\nEach call to `snapshot()` always produces a full, standalone copy.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run) for the 'Reference' section only (the one recorded as stale_doc_section) -- clean, accurate proposed/approved fix. HARNESS GAP EMPIRICALLY CONFIRMED, not just theorized: the run never touched the Quickstart section at all (recorded under the non-standard stale_doc_section_quickstart key, which run_eval.py simply ignores) -- so the actual multi-section-linking hypothesis this case exists to test is still completely untested. Needs either a run_eval.py extension to accept multiple doc sections per case, or a full main.py run against a real repo where both sections genuinely exist and get independently linked."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "029_synthetic_validator_narration_probe_default_changed_no_history",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Fourth instance targeting Future Product Opportunities #12, deliberately paired with case 018 (same underlying code change: a default value change) but scored for the VALIDATOR's narration behavior specifically rather than whether the change is detected at all. Mirrors the real case 001 convention exactly: the human_fixed text states the new default as a plain fact ('Defaults to 5') with zero narration that it changed from 3 -- if Validator rejects this non-narrating-but-accurate description, that's a fourth data point for Entry 42."
+  },
+  "old_code": "def fetch(url, retries: int = 3):\n    ...",
+  "new_code": "def fetch(url, retries: int = 5):\n    ...",
+  "stale_doc_section": "* `retries` -- number of retry attempts. Defaults to `3`.",
+  "human_fixed_doc_section": "* `retries` -- number of retry attempts. Defaults to `5`.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Clean proposed/approved on the most minimal possible non-narrating fix (just '3' -> '5', zero mention that it changed). This is a MEANINGFUL NEGATIVE RESULT for FPO #12: if the Validator reflexively rejected all non-narrating corrections, this maximally-terse case should have been the easiest one to trip -- it wasn't. This nuances FPO #12 usefully: the miscalibration in 005/007 (and possibly 009/010, see their notes) looks like it's triggered by something more specific than bare absence of history-narration -- likely tied to optional-parameter or removed-feature framing rather than simple default-value updates. Recommend citing this case alongside 005/007 when FPO #12 is finally acted on, so the fix targets the actual trigger rather than over-correcting for all non-narrating text."
+  }
+}

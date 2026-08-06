@@ -1,0 +1,18 @@
+{
+  "id": "009_synthetic_mechanical_abstention_probe_blockquote",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second mechanical-abstention probe, different reformatting shape: the relevant sentence sits inside a blockquote/admonition ('> ' line prefix) mixed with inline code. A model copying this text while 'quoting' it commonly drops the leading '> ' on each line -- again outside the whitespace/dash/quote tolerance Entry 38 added. NOT YET RUN -- pending real pipeline execution."
+  },
+  "old_code": "class RetryPolicy:\n    def __init__(self, max_attempts: int = 3):\n        self.max_attempts = max_attempts",
+  "new_code": "class RetryPolicy:\n    def __init__(self, max_attempts: int = 3, jitter: bool = False):\n        self.max_attempts = max_attempts\n        self.jitter = jitter",
+  "stale_doc_section": "## Retry Policy\n\n> `RetryPolicy(max_attempts=3)` retries up to `max_attempts` times using a fixed\n> backoff. There is currently no randomization applied between attempts.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "rejected_accuracy"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Mechanical abstention did NOT reproduce (blockquote '>' prefix handled fine by the tolerant locator). Validator DID reject, but on inspection this looks like a DEFENSIBLE rejection, not an FPO #12-style miscalibration: the new_code only stores `self.jitter = jitter`, it never shows jitter actually being applied to retry timing. The corrector's proposed text ('If jitter is set to True, randomization is applied between attempts') asserts a behavior that isn't actually visible in the shown code snippet -- the same 'delegated/unprovable behavior' pattern as case 002, not the 'accurate but non-narrating' pattern of cases 005/007/028/029. Locking validator_status=rejected_accuracy as the gold label, distinct in kind from the FPO #12 cases despite the surface-level similarity (a rejection under rejected_accuracy on a change that looks additive)."
+  }
+}

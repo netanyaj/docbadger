@@ -1,0 +1,20 @@
+{
+  "id": "024_synthetic_multi_span_gap_logger_rotate",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Third independent instance of the single-span completeness gap (Future Product Opportunities #11), reproducing the same SHAPE as the real case 001 and synthetic case 006 (a code example's call site AND a separate parameter bullet both need updating) in a third, unrelated domain (log rotation) specifically to test whether the pattern is domain-general or was coincidentally tied to the 'add one parameter, described in two places' shape common to 001/006's specific examples."
+  },
+  "old_code": "def configure_logger(path, level=\"INFO\"):\n    ...",
+  "new_code": "def configure_logger(path, level=\"INFO\", rotate_mb=None):\n    ...",
+  "stale_doc_section": "```python\nconfigure_logger(\"/var/log/app.log\", level=\"DEBUG\")\n```\n\n* `path` -- log file destination.\n* `level` -- minimum log level to write. Defaults to `INFO`.",
+  "human_fixed_doc_section": "```python\nconfigure_logger(\"/var/log/app.log\", level=\"DEBUG\", rotate_mb=100)\n```\n\n* `path` -- log file destination.\n* `level` -- minimum log level to write. Defaults to `INFO`.\n* `rotate_mb` -- rotate the log file once it exceeds this size in megabytes. Defaults to `None` (no rotation).",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "corrector_completeness": "partial",
+    "notes_for_labeler": "CONFIRMED (real run). applied_old_text/proposed_new_text show only the parameter bullet was added; the code example (`configure_logger(\"/var/log/app.log\", level=\"DEBUG\")`) was left showing the old call, not updated to include rotate_mb=100. THIRD confirmed instance of the multi-span completeness gap (FPO #11), across three unrelated domains now (001 real/starlette, 006 backup/compress, this logger/rotate case) -- no longer just two similar-shaped anecdotes. Combined with case 016's rename-variant confirmation and case 025 below, this is now strong enough cross-domain, cross-change-type evidence to treat FPO #11 as a settled, real, recurring pattern rather than an open question -- recommend moving this from 'logged, not yet acted on' to an actual product decision on multi-span Corrector support."
+  }
+}

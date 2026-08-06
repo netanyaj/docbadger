@@ -1,0 +1,18 @@
+{
+  "id": "027_synthetic_change_filter_true_negative_test_file_change",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second true-negative variant: a function change that lives entirely under a top-level tests/ directory. Should be excluded by change_filter's test-path detection (Engineering Decision Log Entry 11: path-segment comparison, fixed specifically to catch a top-level tests/ folder, not just a nested one) before it's even considered for linking, regardless of whether any doc happens to mention the function name."
+  },
+  "old_code": "# tests/fixtures/sample_helpers.py\ndef make_test_user(name=\"test\"):\n    ...",
+  "new_code": "# tests/fixtures/sample_helpers.py\ndef make_test_user(name=\"test\", is_admin=False):\n    ...",
+  "stale_doc_section": "",
+  "labels": {
+    "verifier_expected_stale": false,
+    "expected_pipeline_outcome": {
+      "corrector_status": null,
+      "validator_status": null
+    },
+    "notes_for_labeler": "CONFIRMED (real run) at face value, same caveat as case 026: the empty stale_doc_section makes the Verifier trivially say not-stale, which doesn't actually test whether change_filter's test-path detection (Entry 11) would correctly exclude this tests/ file change before linking is even attempted. Needs a full main.py run against a real diff touching an actual tests/ path to be a meaningful regression check for Entry 11's original bug."
+  }
+}

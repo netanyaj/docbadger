@@ -1,0 +1,20 @@
+{
+  "id": "025_synthetic_multi_span_gap_api_client_auth_header",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Fourth independent instance of the same completeness-gap shape (Future Product Opportunities #11), fourth unrelated domain (API client auth), to further test domain-generality now that 024 provides a third data point. Deliberately keeps the exact same STRUCTURE (code example call site + separate parameter bullet, one new optional parameter) as 001/006/024 so any divergence in outcome is attributable to domain content, not case design."
+  },
+  "old_code": "def request(method, url, headers=None):\n    ...",
+  "new_code": "def request(method, url, headers=None, auth_token=None):\n    ...",
+  "stale_doc_section": "```python\nrequest(\"GET\", \"https://api.example.com/items\")\n```\n\n* `method` -- HTTP method to use.\n* `url` -- target URL.\n* `headers` -- optional dict of extra headers to send.",
+  "human_fixed_doc_section": "```python\nrequest(\"GET\", \"https://api.example.com/items\", auth_token=\"...\")\n```\n\n* `method` -- HTTP method to use.\n* `url` -- target URL.\n* `headers` -- optional dict of extra headers to send.\n* `auth_token` -- optional bearer token, sent as an `Authorization` header if provided.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "corrector_completeness": "partial",
+    "notes_for_labeler": "CONFIRMED (real run). Same shape again: applied_old_text/proposed_new_text show only the `headers` bullet's neighbor (`auth_token`) was added; the code example (`request(\"GET\", \"https://api.example.com/items\")`) was left unchanged, not updated to demonstrate auth_token usage. FOURTH confirmed instance of FPO #11 (after 001, 006, 024), fourth unrelated domain. With 4/4 constructed multi-span cases plus the original real-mined case all reproducing the identical gap, this is decisively no longer a 'maybe' -- see case 024's note. This should be the anchor evidence cited when this finally gets raised as a product decision."
+  }
+}

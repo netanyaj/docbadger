@@ -1,0 +1,19 @@
+{
+  "id": "018_synthetic_default_value_change_retries",
+  "source": {
+    "type": "synthetic",
+    "rationale": "New change-type category: the SIGNATURE shape is completely unchanged (same param name, same type) -- only the default value moved (3 -> 5). This is easy to under-diff with any check that only looks at parameter names/types (Engineering Decision Log Entry 20's change_type classification is signature-vs-body; a default-only change is neither an addition, removal, nor a body change in the usual sense, and it's untested whether it's even classified as a diff-worthy change at all)."
+  },
+  "old_code": "def fetch(url, retries: int = 3):\n    ...",
+  "new_code": "def fetch(url, retries: int = 5):\n    ...",
+  "stale_doc_section": "`fetch(url)` retries failed requests up to 3 times by default before\nraising.",
+  "human_fixed_doc_section": "`fetch(url)` retries failed requests up to 5 times by default before\nraising.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Resolves the open question from the pre-run notes: a default-value-only change (signature shape unchanged) DOES reach the Verifier and get correctly flagged and fixed -- the concern that Entry 20's signature-vs-body change_type classifier might silently filter this out was unfounded, at least for this simple case. Clean proposed/approved, single-token old_text ('3'). Minor fragility note: a single-character old_text span is more collision-prone in general (would break if '3' appeared elsewhere in doc_section) -- not an issue here, but worth being aware of for future default-value cases in less controlled doc content."
+  }
+}

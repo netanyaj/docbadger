@@ -1,0 +1,18 @@
+{
+  "id": "012_synthetic_validator_structural_probe_adjacent_fences",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Probes Validator's deterministic pre-LLM structural check (Engineering Decision Log Entry 28: unbalanced backticks/fences/brackets). The stale doc section places the relevant code example immediately adjacent to a second, unrelated fenced block with no blank line separating them -- a layout that's easy for a single-span replacement to corrupt (e.g. a naive patch swallowing the closing ``` of the first block). NOT YET RUN -- structural rejection depends on the corrector's actual proposed span, not just the input shape."
+  },
+  "old_code": "def export(path, format=\"json\"):\n    ...",
+  "new_code": "def export(path, format=\"json\", pretty=False):\n    ...",
+  "stale_doc_section": "```python\nexport(\"/tmp/out.json\")\n```\n```text\n# Supported formats: json, csv, xml\n```\n\nBy default output is minified; there is no option to pretty-print it.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Structural rejection did NOT reproduce -- the corrector's patch stayed clear of the adjacent fence boundary and validator approved cleanly. Negative result: the adjacent-fences layout alone isn't enough to trip Entry 28's structural check; would need a case where the corrector's actual proposed span crosses a fence boundary, which isn't fully controllable by input design alone since it depends on where the model chooses to quote from."
+  }
+}

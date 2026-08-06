@@ -1,0 +1,18 @@
+{
+  "id": "011_synthetic_diagnosis_abstention_probe_threadsafety_claim",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second diagnosis-abstention probe. A broad architectural claim ('thread-safe') is invalidated by adding a mutable class-level cache with no signature change. Unlike case 010 (an ordering claim tied to one method's behavior), this claim describes the whole class -- there's no single sentence that obviously maps to a specific rewrite, making diagnosis-level abstention more likely by design, though still not guaranteed without a real run."
+  },
+  "old_code": "class TokenValidator:\n    def validate(self, token: str) -> bool:\n        return _check_signature(token)",
+  "new_code": "class TokenValidator:\n    def __init__(self):\n        self._cache = {}\n\n    def validate(self, token: str) -> bool:\n        if token in self._cache:\n            return self._cache[token]\n        result = _check_signature(token)\n        self._cache[token] = result\n        return result",
+  "stale_doc_section": "`TokenValidator` is stateless and thread-safe -- a single instance can be\nshared freely across threads with no synchronization required.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Diagnosis-level abstention did NOT occur -- corrector dropped 'stateless' and kept 'thread-safe', validator approved with the rationale that dict lookups/assignments are atomic. This is defensible for CPython specifically (GIL-protected bytecode ops) but the validator's rationale doesn't caveat that this is a CPython-specific, not a general Python-language, guarantee (e.g. would not hold under a free-threaded/no-GIL build). Lower-severity than case 010's finding -- not locking this as a miscalibration, just noting the claim is narrower than it's stated to be. Worth revisiting if a future case specifically targets GIL-dependent correctness claims."
+  }
+}

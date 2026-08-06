@@ -1,0 +1,17 @@
+{
+  "id": "010_synthetic_diagnosis_abstention_probe_ordering_claim",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Probes Corrector diagnosis-level abstention (Engineering Decision Log Entry 24, category 1: 'diagnosis doesn't provide enough grounding for a confident, specific rewrite'). The code change is a purely internal data-structure swap (list -> dict) with no signature change at all -- the staleness is a behavioral/ordering claim in prose, not a parameter description, so there's no obvious localized span to rewrite. Genuinely uncertain by design: a strong Verifier diagnosis might still be specific enough to ground a rewrite ('remove the sentence about insertion order'); a weaker one may abstain. NOT YET RUN."
+  },
+  "old_code": "class EventQueue:\n    def __init__(self):\n        self._items = []\n\n    def add(self, event):\n        self._items.append(event)\n\n    def drain(self):\n        items, self._items = self._items, []\n        return items",
+  "new_code": "class EventQueue:\n    def __init__(self):\n        self._items = {}\n        self._next_id = 0\n\n    def add(self, event):\n        self._items[self._next_id] = event\n        self._next_id += 1\n\n    def drain(self):\n        items = list(self._items.values())\n        self._items = {}\n        return items",
+  "stale_doc_section": "`EventQueue` buffers events until `drain()` is called. Events are always\nreturned by `drain()` in the exact order they were added, since the queue\nis backed by a simple append-only list internally.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed"
+    },
+    "notes_for_labeler": "CONFIRMED (real run), NEW FINDING -- more significant than the case's original design intent. Diagnosis-level abstention did NOT occur: the corrector produced a well-reasoned fix (dropped the wrong 'append-only list' mechanism claim, correctly kept the still-true 'in the order they were added' outcome). The Validator then REJECTED this accurate correction with a factually incorrect rationale: it claims 'a dictionary does not guarantee insertion order in Python versions prior to 3.7, and even then...does not inherently preserve order' -- this is simply wrong; dict insertion-order preservation has been a language guarantee since Python 3.7, and the code inserts via a monotonic _next_id key, so .values() is guaranteed chronological. This is a DIFFERENT failure mode from FPO #12 (narration-vs-accuracy conflation): here the Validator made an incorrect factual claim about Python runtime semantics, not a style/completeness judgment call. validator_status intentionally left unscored (key omitted) since the correction is accurate and the rejection is wrong -- recommend a NEW Future Product Opportunities / Engineering Decision Log entry distinct from #12: 'Validator can assert incorrect claims about language runtime semantics when reasoning about accuracy, not just conflate narration with correctness.'"
+  }
+}

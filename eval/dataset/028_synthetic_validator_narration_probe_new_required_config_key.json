@@ -1,0 +1,19 @@
+{
+  "id": "028_synthetic_validator_narration_probe_new_required_config_key",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Third instance targeting Future Product Opportunities #12 (Validator possibly conflating 'doesn't narrate what changed' with 'inaccurate', per Engineering Decision Log Entry 42). A new REQUIRED config key is added (not optional, unlike 001/006/024/025's pattern) -- a correct, non-narrating description ('`api_key` -- your API key.') is accurate but, like cases 005/007, doesn't say 'this is newly required.' Testing whether the miscalibration judgment from Entry 42 holds for a required-field addition too, not just optional-parameter and removal cases."
+  },
+  "old_code": "class Config:\n    def __init__(self, host, port=8080):\n        self.host = host\n        self.port = port",
+  "new_code": "class Config:\n    def __init__(self, host, port=8080, api_key=None):\n        if api_key is None:\n            raise ValueError(\"api_key is required\")\n        self.host = host\n        self.port = port\n        self.api_key = api_key",
+  "stale_doc_section": "* `host` -- hostname to connect to.\n* `port` -- port number. Defaults to `8080`.",
+  "human_fixed_doc_section": "* `host` -- hostname to connect to.\n* `port` -- port number. Defaults to `8080`.\n* `api_key` -- your API key.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Clean proposed/approved -- but this DIDN'T actually test the FPO #12 hypothesis as designed. The corrector's proposed_new_text ('...This parameter is required.') explicitly narrates the required-ness on its own initiative, unlike the terser, purely-descriptive bullets in cases 005/007 that triggered the original rejections. Interesting nuance for FPO #12: the corrector seems to spontaneously add explicit 'required' framing for parameters that are actually required (a safety-relevant fact), even when not explicitly instructed to narrate history -- suggesting the earlier narration omissions (005/007) may be more about optional-parameter/removal framing specifically, not a blanket under-narration tendency. Worth folding into the eventual FPO #12 product decision as a positive data point, not a null result."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "008_synthetic_mechanical_abstention_probe_table_row",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Probes corrector._locate_verbatim_span (Engineering Decision Log Entry 38) against a harder reformatting case than the original fix: the sentence needing correction lives inside a Markdown TABLE cell, not free prose. A model 'quoting' a table row commonly drops leading/trailing pipe characters or normalizes internal spacing around them -- a different failure mode than the line-wrap/em-dash case the tolerant regex was built for. NOT YET RUN against the real pipeline -- this is a designed probe, not a confirmed result. Expected pipeline outcome intentionally omits corrector_status/validator_status pending a real LLM_API_KEY run; only verifier_expected_stale is asserted as a hard gold label since that part is deterministic given the semantic change."
+  },
+  "old_code": "def configure(timeout: int = 30, retries: int = 3):\n    \"\"\"Configure the client.\"\"\"\n    ...",
+  "new_code": "def configure(timeout: int = 30, retries: int = 3, backoff: float = 1.5):\n    \"\"\"Configure the client.\"\"\"\n    ...",
+  "stale_doc_section": "| Option | Default | Description |\n|---|---|---|\n| `timeout` | `30` | Request timeout in seconds. |\n| `retries` | `3` | Number of retry attempts before giving up. |",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Mechanical abstention did NOT reproduce: the corrector located and quoted the table row cleanly, validator approved. Negative result, same conclusion as case 004's original stress test — the tolerant locator (Entry 38) generalizes to Markdown table rows, not just wrapped prose. No new gap found here; keeping as a permanent regression case for this specific reformatting shape."
+  }
+}

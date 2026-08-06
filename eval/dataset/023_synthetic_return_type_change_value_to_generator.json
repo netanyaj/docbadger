@@ -1,0 +1,18 @@
+{
+  "id": "023_synthetic_return_type_change_value_to_generator",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second return-type case, more severe shape: a function that used to return a single list now returns a generator/iterator, which silently breaks any doc example treating the result as a reusable, indexable, len()-able sequence. Distinguishes an attribute-access change (022) from a fundamentally different usage-pattern change (this case) -- the doc example doesn't just reference the wrong syntax, it demonstrates a usage pattern (double iteration) that will silently produce wrong results (second loop yields nothing) rather than raising an obvious error, which is a worse failure mode."
+  },
+  "old_code": "def find_matches(pattern, text):\n    return [m for m in _scan(pattern, text)]",
+  "new_code": "def find_matches(pattern, text):\n    for m in _scan(pattern, text):\n        yield m",
+  "stale_doc_section": "```python\nmatches = find_matches(pattern, text)\nprint(\"count:\", len(matches))\nfor m in matches:\n    print(m)\n```",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "abstained_diagnosis",
+      "validator_status": null
+    },
+    "notes_for_labeler": "CONFIRMED (real run) -- and the best real example of diagnosis-level abstention in this whole batch, even though this case wasn't designed as an abstention probe (010/011 were, and neither abstained). The corrector's own rationale is a clean articulation of Entry 24's category-1 abstention: 'the new code provided does not offer an alternative way to get the count of matches from the generator without iterating through it, which would consume the generator... without a clear replacement for len(matches) that preserves reusability or provides an equivalent count, a confident correction cannot be made.' This is exactly right -- rewriting the example requires a product decision (does the doc suggest wrapping in list() first? dropping the len() call and count-tracking entirely? a different pattern?) that isn't determinable from the code alone, and the corrector correctly recognized that rather than guessing. RECLASSIFYING this case's primary tag from 'return-type change probe' to 'confirmed diagnosis-level abstention, real instance' -- it earns a place in the abstention-coverage category more than in the return-type category, alongside cases 010/011 which did NOT reproduce that behavior despite being purpose-built for it."
+  }
+}

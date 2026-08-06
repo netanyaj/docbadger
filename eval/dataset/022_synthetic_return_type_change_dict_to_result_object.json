@@ -1,0 +1,19 @@
+{
+  "id": "022_synthetic_return_type_change_dict_to_result_object",
+  "source": {
+    "type": "synthetic",
+    "rationale": "New change-type category: the function's RETURN type changes (plain dict -> a custom Result object), not any parameter. Entry 20's change_type classification is built around the argument list specifically ('signature-vs-body-only change classification... comparing just the function's argument-list AST') -- a return-type-only change may not be captured by that classifier at all, since the argument list itself is unchanged. This case exists to check whether return-type staleness is detected upstream at all, independent of what the Verifier/Corrector then do with it."
+  },
+  "old_code": "def parse(text):\n    return {\"ok\": True, \"value\": _do_parse(text)}",
+  "new_code": "class ParseResult:\n    def __init__(self, ok, value):\n        self.ok = ok\n        self.value = value\n\ndef parse(text):\n    return ParseResult(ok=True, value=_do_parse(text))",
+  "stale_doc_section": "```python\nresult = parse(text)\nprint(result[\"value\"])\n```",
+  "human_fixed_doc_section": "```python\nresult = parse(text)\nprint(result.value)\n```",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Resolves the open detection question: a return-type-only change (dict -> custom object, argument list unchanged) DOES reach the Verifier and get correctly diagnosed and fixed ('result[\"value\"]' -> 'result.value'). Clean proposed/approved, exactly matching human_fixed_doc_section. No completeness gap here since only one usage site existed in the example."
+  }
+}

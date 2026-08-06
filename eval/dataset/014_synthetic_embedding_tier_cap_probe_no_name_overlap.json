@@ -1,0 +1,19 @@
+{
+  "id": "014_synthetic_embedding_tier_cap_probe_no_name_overlap",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Directly probes Engineering Decision Log Entry 21 (embedding-sourced links can never reach High confidence regardless of raw score) with a case designed so the HEURISTIC linker has zero chance of matching: the function name (`_flush_pending`) never appears anywhere in the doc prose, which instead describes the same behavior in entirely different words ('queued writes are committed to disk'). Only the embedding linker can find this link at all. This is the first eval case that isolates an embedding-only link end to end -- prior cases (001-007) were all heuristic-matched."
+  },
+  "old_code": "def _flush_pending(self):\n    for item in self._buffer:\n        self._disk.write(item)\n    self._buffer.clear()",
+  "new_code": "def _flush_pending(self):\n    for item in self._buffer:\n        self._disk.write(item)\n    self._buffer.clear()\n    self._disk.fsync()",
+  "stale_doc_section": "Queued writes are committed to disk automatically once the internal buffer\nfills. This commit is a plain write -- no fsync is performed, so a power\nloss immediately after a commit can still lose the most recent batch.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "corrector_completeness": null,
+    "notes_for_labeler": "CONFIRMED (real run) for the Verifier/Corrector/Validator behavior on this content -- clean proposed/approved. IMPORTANT CAVEAT, unchanged from the pre-run notes: scripts/run_eval.py's stage-level harness calls judge_staleness directly with the stale_doc_section handed to it -- it never runs indexer.py's real heuristic/embedding linking or confidence_rubric.py's tier scoring. So this run confirms the underlying staleness scenario is real and correctly handled, but says NOTHING about whether the embedding linker would actually find this link with zero name overlap, or whether the tier cap holds for it -- that part of the hypothesis is still untested and requires a full main.py run against a real repo/PR (see Milestone 7 sandbox run)."
+  }
+}

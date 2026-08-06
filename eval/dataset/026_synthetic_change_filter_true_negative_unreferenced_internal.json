@@ -1,0 +1,18 @@
+{
+  "id": "026_synthetic_change_filter_true_negative_unreferenced_internal",
+  "source": {
+    "type": "synthetic",
+    "rationale": "New true-negative category distinct from case 003 (cosmetic no-op refactor of a function the docs DO reference). This case changes a real, externally-observable signature -- but of a private helper function that is not mentioned, linked, or referenced anywhere in any doc, by name or by any semantically related description. The correct behavior isn't 'Verifier says not stale' (003's pattern) -- it's that this should never even reach the Verifier, because the doc-linking stage should never find a candidate doc section for it at all."
+  },
+  "old_code": "def _internal_normalize_path(path, base=None):\n    ...",
+  "new_code": "def _internal_normalize_path(path, base=None, resolve_symlinks=True):\n    ...",
+  "stale_doc_section": "",
+  "labels": {
+    "verifier_expected_stale": false,
+    "expected_pipeline_outcome": {
+      "corrector_status": null,
+      "validator_status": null
+    },
+    "notes_for_labeler": "CONFIRMED (real run) at face value (verifier_stale=False, nothing downstream ran) -- but this is a WEAK confirmation, not a real test of the intended hypothesis. The Verifier reasoned 'the documentation section is empty, so there's no content to become stale' -- true, but that's an artifact of feeding it an empty string directly, not evidence that the real linking stage would have correctly found zero candidate doc sections for this unreferenced internal function. run_eval.py bypasses change_filter and indexer.py entirely (calls judge_staleness directly), so the actual claim under test -- 'this function should never generate a finding because nothing links to it' -- remains unverified. Needs a full main.py run to mean anything (see Milestone 7 sandbox run)."
+  }
+}

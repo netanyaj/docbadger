@@ -1,0 +1,19 @@
+{
+  "id": "017_synthetic_param_rename_positional_usage",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second rename case, different usage shape: the renamed parameter is used POSITIONALLY in the doc's example (not as a keyword), so the rename itself doesn't break the example call syntactically -- only the prose bullet naming the parameter goes stale. Distinguishes 'rename breaks the example' (016) from 'rename only breaks the parameter description' (this case), since those imply different severities and possibly different Corrector behavior."
+  },
+  "old_code": "def resize(image, target_width):\n    ...",
+  "new_code": "def resize(image, max_width):\n    ...",
+  "stale_doc_section": "```python\nresize(img, 800)\n```\n\n`target_width` is the desired output width in pixels; the image is scaled\nproportionally so it never exceeds this value.",
+  "human_fixed_doc_section": "```python\nresize(img, 800)\n```\n\n`max_width` is the desired output width in pixels; the image is scaled\nproportionally so it never exceeds this value.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Clean single-span fix, matches design intent exactly -- since the example uses the parameter positionally (`resize(img, 800)`), the rename only invalidates the prose bullet, and the corrector correctly fixed exactly that with no completeness gap. Useful CONTRAST case alongside 016: same change type (rename), but whether a completeness gap manifests depends on whether the example actually uses the parameter by keyword. Worth keeping both as a matched pair."
+  }
+}

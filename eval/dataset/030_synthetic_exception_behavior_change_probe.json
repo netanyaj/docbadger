@@ -1,0 +1,19 @@
+{
+  "id": "030_synthetic_exception_behavior_change_probe",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Final new change-type category: the exception TYPE raised on invalid input changes (ValueError -> a custom exception class), with no change to the function's parameters at all. Like the return-type cases (022/023), Entry 20's change_type classifier is argument-list-based and may not register this as a change worth verifying at all. Doc examples showing a specific except clause become silently wrong (the except no longer catches anything) rather than obviously broken, which is a quiet, easy-to-miss real-world failure mode."
+  },
+  "old_code": "def parse_config(text):\n    if not text.strip():\n        raise ValueError(\"config is empty\")\n    return _do_parse(text)",
+  "new_code": "class ConfigError(Exception):\n    pass\n\ndef parse_config(text):\n    if not text.strip():\n        raise ConfigError(\"config is empty\")\n    return _do_parse(text)",
+  "stale_doc_section": "```python\ntry:\n    cfg = parse_config(text)\nexcept ValueError as e:\n    print(\"invalid config:\", e)\n```",
+  "human_fixed_doc_section": "```python\ntry:\n    cfg = parse_config(text)\nexcept ConfigError as e:\n    print(\"invalid config:\", e)\n```",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed",
+      "validator_status": "approved"
+    },
+    "notes_for_labeler": "CONFIRMED (real run). Resolves the open detection question: an exception-type-only change (ValueError -> custom ConfigError, argument list unchanged) DOES reach the Verifier and get correctly diagnosed and fixed. Clean proposed/approved, single-token swap. Combined with cases 018/019 (default-value) and 022 (return-type) all being correctly detected, the original worry that Entry 20's argument-list-based change_type classifier might systemically miss non-signature changes appears UNFOUNDED across all three categories tested -- worth closing out that open question in the Engineering Decision Log rather than leaving it hanging."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "019_synthetic_default_value_change_boolean_flip",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second default-value case, higher-stakes shape: a boolean flag's default flips (verify_ssl: True -> False), which is a meaningful behavioral/security-relevant change disguised as the smallest possible code diff (one token). Distinguishes 'default change with mild impact' (018, a retry count) from 'default change with real behavioral risk' (this case) -- both should probably be flagged, but this one arguably deserves a higher confidence tier if the rubric is sensitive to real-world impact, which it currently is not (Entry 2's rubric factors are structural, not impact-weighted)."
+  },
+  "old_code": "def connect(host, verify_ssl: bool = True):\n    ...",
+  "new_code": "def connect(host, verify_ssl: bool = False):\n    ...",
+  "stale_doc_section": "By default, `connect()` verifies the server's SSL certificate; pass\n`verify_ssl=False` to disable this for local testing only.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed"
+    },
+    "notes_for_labeler": "CONFIRMED (real run) for verifier/corrector -- correctly detected and correctly fixed (also resolves the same 'does a default-only change reach the Verifier' question as case 018, second confirmation). SAME REAL BUG AS CASE 015: validator_status came back error_unvalidated with the identical parse error 'Unterminated string starting at: line 3 column 16 (char 50)'. Two cases, same exact error signature and character offset, in the same run -- this is a systematic validator.py JSON-parsing bug, not '\ncase-specific noise. validator_status left unscored pending a fix and rerun. See case 015's notes for the full flag -- treat as one bug, not two."
+  }
+}

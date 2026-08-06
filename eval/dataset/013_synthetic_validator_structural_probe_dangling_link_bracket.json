@@ -1,0 +1,18 @@
+{
+  "id": "013_synthetic_validator_structural_probe_dangling_link_bracket",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Second structural-rejection probe: the doc section already contains a slightly unusual construct (an inline code span immediately followed by an unmatched '[' from what was meant to be a markdown link but is missing its ']()' close) near the text that needs correcting. Tests whether a patch touching text adjacent to a pre-existing borderline construct is more likely to trip the structural lint, or whether the lint correctly isolates the actual patched span."
+  },
+  "old_code": "def upload(file_path, chunk_size=1024):\n    ...",
+  "new_code": "def upload(file_path, chunk_size=1024, checksum=\"md5\"):\n    ...",
+  "stale_doc_section": "Use `upload(file_path` to send a file. See [chunking behavior\nfor details on how `chunk_size` affects throughput.",
+  "labels": {
+    "verifier_expected_stale": false,
+    "expected_pipeline_outcome": {
+      "corrector_status": null,
+      "validator_status": null
+    },
+    "notes_for_labeler": "CONFIRMED (real run) -- but this case FAILED its intended purpose. Design intent was to probe Validator's structural rejection path; instead the Verifier judged the change not-stale at all ('the addition of a new parameter checksum does not invalidate the current documentation, though it could be updated to be more complete'), so the pipeline never reached the Corrector or Validator. Root cause: the stale_doc_section here is a single loose sentence fragment (and already contains an unrelated malformed markdown link), not a structured parameter list like the cases that DID get flagged stale for a similar 'new optional parameter, not yet mentioned' shape (005, 006, 024, 025, 028). The Verifier appears more lenient about omissions in free-prose sections than in explicit parameter-list sections -- itself a real, mildly interesting finding, but not what this case was built to test. Relabeled verifier_expected_stale=False to match the (defensible) confirmed behavior rather than force a contested gold label. RECOMMEND: redesign a v2 of this probe with a proper bulleted parameter-list doc section (matching the shape of cases that reliably get flagged) so it actually reaches the Validator's structural check."
+  }
+}

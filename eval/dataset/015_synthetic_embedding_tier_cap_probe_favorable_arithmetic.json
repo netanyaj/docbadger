@@ -1,0 +1,17 @@
+{
+  "id": "015_synthetic_embedding_tier_cap_probe_favorable_arithmetic",
+  "source": {
+    "type": "synthetic",
+    "rationale": "Permanent eval-level regression case for the exact scenario Engineering Decision Log Entry 21 verified by hand (80 raw points for a favorable embedding-sourced link vs. 45 for an unfavorable heuristic-sourced link) -- that check currently only exists as a unit-level rubric test, not an end-to-end eval case. Constructed so the embedding-sourced link has a favorable change_type (pure addition) and tight blast radius (single short doc section), which would out-score a real but weaker heuristic link on raw points alone, to confirm the TIER cap (not point arithmetic) is what actually prevents 'High' here."
+  },
+  "old_code": "def _emit(self, level, message):\n    self._sink.write(f\"[{level}] {message}\\n\")",
+  "new_code": "def _emit(self, level, message):\n    self._sink.write(f\"[{level}] {message}\\n\")\n    self._sink.flush()",
+  "stale_doc_section": "Log lines are written to the sink but are not flushed automatically after\neach message; call `.flush()` manually if you need durability guarantees\nbefore the process exits.",
+  "labels": {
+    "verifier_expected_stale": true,
+    "expected_pipeline_outcome": {
+      "corrector_status": "proposed"
+    },
+    "notes_for_labeler": "CONFIRMED (real run) for verifier/corrector -- clean, accurate proposed correction. REAL BUG FOUND, NOT just an eval gap: validator_status came back as error_unvalidated with 'Validator response could not be parsed: Unterminated string starting at: line 3 column 16 (char 50)'. This is a JSON-parsing failure in validator.py's handling of the LLM's structured output, not a content problem with this case. Notably, case 019 (default_value_change_boolean_flip) hit the EXACT same error text at the EXACT same character offset (char 50) in the same run -- strongly suggests a systematic issue (e.g. an unescaped newline or quote inside a multi-line validator_rationale breaking JSON string parsing) rather than two independent flukes. validator_status left unscored pending a fix to validator.py's response parsing and a rerun. RECOMMEND treating this as a priority Engineering Decision Log item -- a validator that can silently fail to parse its own LLM's output on ordinary (not adversarial) content is a real production risk, separate from and more urgent than any eval-dataset-authoring question."
+  }
+}
