@@ -22,10 +22,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from diff_analyzer import get_modified_functions
 from change_filter import filter_meaningful
 from indexer import build_index, get_linked_doc_sections
-from verifier import judge_staleness
+from verifier import judge_staleness, PROMPT_VERSION as VERIFIER_PROMPT_VERSION
 from confidence_rubric import score_confidence_for_link
-from corrector import generate_correction, CorrectionStatus
-from validator import validate_correction
+from corrector import generate_correction, CorrectionStatus, PROMPT_VERSION as CORRECTOR_PROMPT_VERSION
+from validator import validate_correction, PROMPT_VERSION as VALIDATOR_PROMPT_VERSION
 from output_orchestrator import PipelineFinding, build_orchestration_plan
 from comment_builder import build_final_comment
 from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative, TokenUsage
@@ -123,7 +123,7 @@ def main():
             linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
             for section_id in linked_section_ids:
                 section = index["doc_sections"][section_id]
-                key = verdict_key(fn.old_code, fn.new_code, section.text)
+                key = verdict_key(fn.old_code, fn.new_code, section.text, VERIFIER_PROMPT_VERSION)
 
                 if key in llm_cache:
                     # Cache hit: the exact same (old_code, new_code, doc
@@ -134,7 +134,12 @@ def main():
                     # so it would be wrong to let it count against
                     # max_llm_calls_per_run alongside real calls.
                     cached = llm_cache[key]
-                    verdict = {"stale": cached["stale"], "diagnosis": cached["diagnosis"], "usage": TokenUsage()}
+                    verdict = {
+                        "stale": cached["stale"],
+                        "diagnosis": cached["diagnosis"],
+                        "usage": TokenUsage(),
+                        "prompt_version": VERIFIER_PROMPT_VERSION,
+                    }
                     llm_cache_hits += 1
                 else:
                     if not budget.try_consume():
@@ -311,6 +316,9 @@ def main():
         embedding_cache_misses=index.get("cache_misses", 0),
         llm_cache_hits=llm_cache_hits,
         llm_cache_misses=llm_cache_misses,
+        verifier_prompt_version=VERIFIER_PROMPT_VERSION,
+        corrector_prompt_version=CORRECTOR_PROMPT_VERSION,
+        validator_prompt_version=VALIDATOR_PROMPT_VERSION,
     )
 
 

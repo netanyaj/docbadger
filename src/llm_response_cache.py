@@ -41,15 +41,26 @@ LOCAL_CACHE_RELATIVE_PATH = os.path.join(".docbadger_cache", "llm_responses.json
 INDEX_FILENAME = "llm_responses.json"
 
 
-def verdict_key(old_code: str, new_code: str, doc_section: str) -> str:
-    """Content-hash key for the exact (old_code, new_code, doc_section)
-    triple. NUL-joined before hashing (not plain concatenation) so that
-    e.g. old_code="ab", new_code="c" can never collide with
-    old_code="a", new_code="bc" -- the same collision-safety habit as
-    everywhere else content is hashed in this codebase, just applied to
-    three fields instead of one.
+def verdict_key(old_code: str, new_code: str, doc_section: str, prompt_version: str) -> str:
+    """Content-hash key for the exact (old_code, new_code, doc_section,
+    prompt_version) tuple. NUL-joined before hashing (not plain
+    concatenation) so that e.g. old_code="ab", new_code="c" can never
+    collide with old_code="a", new_code="bc" -- the same collision-safety
+    habit as everywhere else content is hashed in this codebase, just
+    applied to four fields instead of one.
+
+    prompt_version is included even though the Architecture's cache spec
+    (Section 12) only names "old code + new code + doc content" -- that
+    wording predates Section 16's prompt-versioning requirement (added by
+    this same build pass, see Engineering Decision Log Entry 86). Without
+    it, a prompt-version bump could never invalidate this cache: a verdict
+    produced by an OLD prompt version would keep getting silently reused
+    under a NEW one, defeating the entire point of "did this prompt change
+    make things better or worse" -- the cache would hide the answer. This
+    is a deliberate, disclosed refinement of fix 5's cache key, not a
+    silent reinterpretation of the Architecture spec.
     """
-    combined = "\x00".join([old_code, new_code, doc_section])
+    combined = "\x00".join([old_code, new_code, doc_section, prompt_version])
     return hashlib.sha256(combined.encode("utf-8")).hexdigest()
 
 

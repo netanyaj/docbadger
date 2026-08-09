@@ -43,6 +43,11 @@ from llm_client import _build_client, call_with_rate_limit_retry
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 from cost_tracking import usage_from_response, TokenUsage
 
+# Architecture Section 16: prompt versioning is mandatory. Bump any time
+# _build_prompts's content changes -- test_validator.py's golden hash test
+# fails loudly if the prompt text changes without a matching bump.
+PROMPT_VERSION = "validator-v1"
+
 
 class ValidationStatus(str, Enum):
     APPROVED = "approved"
@@ -60,6 +65,7 @@ class ValidatorResult:
     new_text: str       # echoed back unchanged — always present, for the comment to render
     rationale: str       # always populated: why approved, or why rejected/unvalidated
     usage: TokenUsage = field(default_factory=TokenUsage)   # zeroed for REJECTED_STRUCTURAL — no LLM call made
+    prompt_version: str = PROMPT_VERSION   # set via dataclass default so every existing return site gets it for free
 
 
 def _build_prompts(new_code: str, doc_section: str, old_text: str, new_text: str, nonce: str) -> tuple:

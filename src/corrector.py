@@ -38,6 +38,11 @@ from llm_client import _build_client, call_with_rate_limit_retry
 from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 from cost_tracking import usage_from_response, TokenUsage
 
+# Architecture Section 16: prompt versioning is mandatory. Bump any time
+# _build_prompts's content changes -- test_corrector.py's golden hash test
+# fails loudly if the prompt text changes without a matching bump.
+PROMPT_VERSION = "corrector-v1"
+
 
 # Characters models routinely normalize away when "quoting" prose — a
 # mid-sentence line-wrap becomes a space, an em/en dash becomes a hyphen,
@@ -97,6 +102,7 @@ class CorrectorResult:
     new_text: Optional[str]      # populated only when status == PROPOSED
     rationale: str                # always populated: why this rewrite, or why abstaining
     usage: TokenUsage = field(default_factory=TokenUsage)   # summed across all attempts (initial + any retry)
+    prompt_version: str = PROMPT_VERSION   # set via dataclass default so every existing return site gets it for free
 
 
 def _build_prompts(diagnosis: str, new_code: str, doc_section: str, nonce: str) -> tuple:

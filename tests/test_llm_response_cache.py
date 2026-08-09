@@ -14,20 +14,20 @@ from llm_response_cache import (
 
 
 def test_verdict_key_is_stable_for_same_inputs():
-    k1 = verdict_key("old", "new", "doc")
-    k2 = verdict_key("old", "new", "doc")
+    k1 = verdict_key("old", "new", "doc", "v1")
+    k2 = verdict_key("old", "new", "doc", "v1")
     assert k1 == k2
 
 
 def test_verdict_key_differs_for_different_inputs():
-    assert verdict_key("old", "new", "doc") != verdict_key("old", "new2", "doc")
+    assert verdict_key("old", "new", "doc", "v1") != verdict_key("old", "new2", "doc", "v1")
 
 
 def test_verdict_key_no_collision_across_field_boundaries():
     # Plain concatenation would collide here: "ab"+"c" == "a"+"bc". The
     # NUL-joined hash must not.
-    k1 = verdict_key("ab", "c", "doc")
-    k2 = verdict_key("a", "bc", "doc")
+    k1 = verdict_key("ab", "c", "doc", "v1")
+    k2 = verdict_key("a", "bc", "doc", "v1")
     assert k1 != k2
 
 
@@ -38,7 +38,7 @@ def test_cache_miss_calls_verify_fn_and_stores_result():
         calls.append(1)
         return {"stale": True, "diagnosis": "changed signature", "usage": "fake-usage"}
 
-    key = verdict_key("old", "new", "doc")
+    key = verdict_key("old", "new", "doc", "v1")
     verdict, hit, updated_cache = get_cached_or_verify(key, {}, verify_fn)
 
     assert len(calls) == 1
@@ -49,7 +49,7 @@ def test_cache_miss_calls_verify_fn_and_stores_result():
 
 
 def test_cache_hit_never_calls_verify_fn():
-    key = verdict_key("old", "new", "doc")
+    key = verdict_key("old", "new", "doc", "v1")
     cache = {key: {"stale": False, "diagnosis": "still accurate"}}
 
     def verify_fn():
@@ -69,7 +69,7 @@ def test_failed_verification_is_never_cached():
     def verify_fn():
         return {"stale": None, "diagnosis": "[LLM CALL FAILED]", "usage": "fake-usage"}
 
-    key = verdict_key("old", "new", "doc")
+    key = verdict_key("old", "new", "doc", "v1")
     verdict, hit, updated_cache = get_cached_or_verify(key, {}, verify_fn)
 
     assert hit is False
@@ -79,7 +79,7 @@ def test_failed_verification_is_never_cached():
 
 def test_load_initial_cache_prefers_local_file_over_persist_flag():
     with tempfile.TemporaryDirectory() as tmp:
-        key = verdict_key("old", "new", "doc")
+        key = verdict_key("old", "new", "doc", "v1")
         persist_cache_dir = os.path.join(tmp, os.path.dirname(LOCAL_CACHE_RELATIVE_PATH))
         os.makedirs(persist_cache_dir, exist_ok=True)
         import json
@@ -103,7 +103,7 @@ def test_load_initial_cache_empty_and_no_persist_returns_empty_without_touching_
 
 def test_persist_cache_writes_local_file_readable_back():
     with tempfile.TemporaryDirectory() as tmp:
-        key = verdict_key("old", "new", "doc")
+        key = verdict_key("old", "new", "doc", "v1")
         cache = {key: {"stale": True, "diagnosis": "x"}}
 
         # persist_cache also tries to push to the real index branch, which
@@ -150,7 +150,7 @@ def test_simulated_main_loop_wiring_cache_hit_never_consumes_budget():
 
     results = []
     for old_code, new_code, doc_section in triples:
-        key = verdict_key(old_code, new_code, doc_section)
+        key = verdict_key(old_code, new_code, doc_section, "v1")
         if key in cache:
             cached = cache[key]
             verdict = {"stale": cached["stale"], "diagnosis": cached["diagnosis"]}
@@ -183,7 +183,7 @@ def test_simulated_main_loop_budget_only_trips_on_real_misses():
 
     budget = LLMCallBudget(max_calls=1)
     cache = {}
-    key = verdict_key("old", "new", "doc")
+    key = verdict_key("old", "new", "doc", "v1")
 
     for _ in range(5):
         if key in cache:
@@ -193,3 +193,13 @@ def test_simulated_main_loop_budget_only_trips_on_real_misses():
 
     assert budget.calls_made == 1
     assert budget.truncated is False
+
+
+def test_verdict_key_differs_across_prompt_versions_for_identical_content():
+    # A prompt-version bump must invalidate cached verdicts from the old
+    # version -- otherwise a stale-prompt verdict would keep getting reused
+    # forever under a newer prompt, defeating the entire point of
+    # versioning ("did this prompt change make things better or worse").
+    k_v1 = verdict_key("old", "new", "doc", "verifier-v1")
+    k_v2 = verdict_key("old", "new", "doc", "verifier-v2")
+    assert k_v1 != k_v2

@@ -117,3 +117,39 @@ def test_usage_defaults_to_zero_when_fake_response_has_no_usage_field():
     client = FakeOpenAIClient([json.dumps({"stale": False, "diagnosis": "fine"})])  # no usage passed
     result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=client)
     assert result["usage"] == TokenUsage()
+
+
+def test_prompt_version_is_present_on_every_return_path():
+    from cost_tracking import TokenUsage
+
+    ok_client = FakeOpenAIClient([json.dumps({"stale": True, "diagnosis": "d"})])
+    ok_result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=ok_client)
+    assert ok_result["prompt_version"] == "verifier-v1"
+
+    err_client = FakeOpenAIClient([ConnectionError("simulated failure")])
+    err_result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=err_client)
+    assert err_result["prompt_version"] == "verifier-v1"
+
+    unparseable_client = FakeOpenAIClient(["not json"])
+    unparseable_result = judge_staleness(OLD_CODE, NEW_CODE, DOC_SECTION, model="openai/gpt-4o", client=unparseable_client)
+    assert unparseable_result["prompt_version"] == "verifier-v1"
+
+
+def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
+    """Architecture Section 16: prompt versioning is mandatory, not
+    optional -- every prompt change gets a new version ID. A hand-
+    maintained version string can silently drift from the prompt it names
+    if a developer edits the wording and forgets to bump it. This test is
+    the mechanical enforcement: it renders _build_prompts with a FIXED
+    nonce (so the result is fully deterministic) and hashes it. If this
+    test ever fails, it means the prompt text changed -- go update
+    PROMPT_VERSION in verifier.py, then update the expected hash below to
+    match the new (already-bumped) version. A failure here is the system
+    working, not a bug to silence.
+    """
+    from verifier import _build_prompts, PROMPT_VERSION
+    from prompt_versioning import hash_prompt_pair
+
+    system, user = _build_prompts(OLD_CODE, NEW_CODE, DOC_SECTION, "golden-test-nonce-0000")
+    assert PROMPT_VERSION == "verifier-v1"
+    assert hash_prompt_pair(system, user) == "14c414302234a9c5a6be8d4a6a2a652eee1a65b0c323f7162b7d323646db5f57"

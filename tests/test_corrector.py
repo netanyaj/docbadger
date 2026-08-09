@@ -224,3 +224,24 @@ def test_usage_is_zeroed_on_infra_failure_before_any_response():
     )
     assert result.status == CorrectionStatus.ABSTAINED_INFRA
     assert result.usage == TokenUsage()  # no tokens spent — the call raised before a response came back
+
+
+def test_prompt_version_present_on_result():
+    from corrector import CorrectorResult
+
+    result = CorrectorResult(status=CorrectionStatus.ABSTAINED_DIAGNOSIS, old_text=None, new_text=None, rationale="r")
+    assert result.prompt_version == "corrector-v1"
+
+
+def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
+    """See verifier's test of the same name for the full rationale. Fixed
+    nonce -> deterministic render -> hashed -> compared against a stored
+    value. A failure means the prompt text changed; bump PROMPT_VERSION in
+    corrector.py and update the expected hash to match.
+    """
+    from corrector import _build_prompts, PROMPT_VERSION
+    from prompt_versioning import hash_prompt_pair
+
+    system, user = _build_prompts("some diagnosis", NEW_CODE, DOC_SECTION, "golden-test-nonce-0000")
+    assert PROMPT_VERSION == "corrector-v1"
+    assert hash_prompt_pair(system, user) == "c9a85d5e5b97bec1ab40ddc119d4d4100cdf56eb1b21cbdbef3cc9ef4612b441"

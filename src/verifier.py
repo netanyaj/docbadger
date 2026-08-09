@@ -10,6 +10,12 @@ from prompt_delimiters import new_nonce, wrap, tag_name, delimiter_explanation
 from cost_tracking import usage_from_response, TokenUsage
 from llm_client import _build_client, call_with_rate_limit_retry
 
+# Architecture Section 16: "prompt versioning is mandatory, not optional --
+# every prompt change gets a new version ID." Bump this string any time
+# _build_prompts's system/user content changes -- test_verifier.py's golden
+# hash test fails loudly if the prompt text changes without a matching bump.
+PROMPT_VERSION = "verifier-v1"
+
 
 def _build_prompts(old_code: str, new_code: str, doc_section: str, nonce: str) -> tuple:
     """Builds (system_prompt, user_prompt) with untrusted content wrapped in
@@ -83,7 +89,7 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
         raw = response.choices[0].message.content.strip()
         usage = usage_from_response(response)
     except Exception as e:
-        return {"stale": None, "diagnosis": f"[LLM CALL FAILED: {e}]", "usage": TokenUsage()}
+        return {"stale": None, "diagnosis": f"[LLM CALL FAILED: {e}]", "usage": TokenUsage(), "prompt_version": PROMPT_VERSION}
 
     if raw.startswith("```"):
         raw = raw.strip("`")
@@ -93,6 +99,16 @@ def judge_staleness(old_code: str, new_code: str, doc_section: str, model: str, 
 
     try:
         parsed = json.loads(raw)
-        return {"stale": parsed.get("stale"), "diagnosis": parsed.get("diagnosis", ""), "usage": usage}
+        return {
+            "stale": parsed.get("stale"),
+            "diagnosis": parsed.get("diagnosis", ""),
+            "usage": usage,
+            "prompt_version": PROMPT_VERSION,
+        }
     except json.JSONDecodeError:
-        return {"stale": None, "diagnosis": f"[UNPARSEABLE RESPONSE: {raw[:200]}]", "usage": usage}
+        return {
+            "stale": None,
+            "diagnosis": f"[UNPARSEABLE RESPONSE: {raw[:200]}]",
+            "usage": usage,
+            "prompt_version": PROMPT_VERSION,
+        }

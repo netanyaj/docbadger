@@ -28,9 +28,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from verifier import judge_staleness
-from corrector import generate_correction, CorrectionStatus
-from validator import validate_correction
+from verifier import judge_staleness, PROMPT_VERSION as VERIFIER_PROMPT_VERSION
+from corrector import generate_correction, CorrectionStatus, PROMPT_VERSION as CORRECTOR_PROMPT_VERSION
+from validator import validate_correction, PROMPT_VERSION as VALIDATOR_PROMPT_VERSION
 from llm_client import current_provider, required_api_key_env
 
 DATASET_DIR = os.path.join(os.path.dirname(__file__), "..", "eval", "dataset")
@@ -75,6 +75,12 @@ def run_case(case: dict, model: str, client=None) -> dict:
     result["verifier_stale"] = verdict["stale"]
     result["verifier_diagnosis"] = verdict["diagnosis"]
     result["verifier_errored"] = verdict["stale"] is None
+    # Architecture Section 19: "the eval harness ... records which prompt
+    # version produced which precision/recall numbers." Recorded per case,
+    # not just once globally, so a mixed-version historical results file
+    # (e.g. re-running only some cases after a prompt change) stays honest
+    # about exactly which version produced each number.
+    result["verifier_prompt_version"] = verdict.get("prompt_version", VERIFIER_PROMPT_VERSION)
 
     if "verifier_expected_stale" in labels and not result["verifier_errored"]:
         result["verifier_match"] = verdict["stale"] == labels["verifier_expected_stale"]
@@ -86,6 +92,7 @@ def run_case(case: dict, model: str, client=None) -> dict:
         )
         result["corrector_status"] = corrector_result.status.value
         result["corrector_rationale"] = corrector_result.rationale
+        result["corrector_prompt_version"] = getattr(corrector_result, "prompt_version", CORRECTOR_PROMPT_VERSION)
 
         if corrector_result.status == CorrectionStatus.PROPOSED:
             validator_result = validate_correction(
@@ -95,6 +102,7 @@ def run_case(case: dict, model: str, client=None) -> dict:
             )
             result["validator_status"] = validator_result.status.value
             result["validator_rationale"] = validator_result.rationale
+            result["validator_prompt_version"] = getattr(validator_result, "prompt_version", VALIDATOR_PROMPT_VERSION)
             result["applied_old_text"] = corrector_result.old_text
             result["proposed_new_text"] = corrector_result.new_text
 

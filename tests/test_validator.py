@@ -147,3 +147,24 @@ def test_usage_is_zeroed_on_infra_failure():
     client = FakeOpenAIClient([ConnectionError("simulated failure")])
     result = validate_correction(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, model="openai/gpt-4o", client=client)
     assert result.usage == TokenUsage()
+
+
+def test_prompt_version_present_on_result():
+    from validator import ValidatorResult, ValidationStatus
+
+    result = ValidatorResult(status=ValidationStatus.REJECTED_STRUCTURAL, old_text="a", new_text="b", rationale="r")
+    assert result.prompt_version == "validator-v1"
+
+
+def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
+    """See verifier's test of the same name for the full rationale. Fixed
+    nonce -> deterministic render -> hashed -> compared against a stored
+    value. A failure means the prompt text changed; bump PROMPT_VERSION in
+    validator.py and update the expected hash to match.
+    """
+    from validator import _build_prompts, PROMPT_VERSION
+    from prompt_versioning import hash_prompt_pair
+
+    system, user = _build_prompts(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, "golden-test-nonce-0000")
+    assert PROMPT_VERSION == "validator-v1"
+    assert hash_prompt_pair(system, user) == "c3c6150b13384015c9384ff193bb6b89fa3bb79a01d770c5d7caf370c7710bc8"
