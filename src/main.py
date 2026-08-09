@@ -28,9 +28,10 @@ from corrector import generate_correction, CorrectionStatus
 from validator import validate_correction
 from output_orchestrator import PipelineFinding, build_orchestration_plan
 from comment_builder import build_final_comment
-from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative
+from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative, TokenUsage
 from llm_call_budget import LLMCallBudget, parse_max_calls
 from run_logger import RunLogger
+from llm_response_cache import verdict_key, get_cached_or_verify, load_initial_cache as load_initial_llm_cache, persist_cache as persist_llm_cache
 
 
 def _fail(message: str) -> None:
@@ -106,21 +107,47 @@ def main():
     cost_summary = RunCostSummary(model=model)
     budget = LLMCallBudget(parse_max_calls(os.environ.get("MAX_LLM_CALLS_PER_RUN", "")))
 
+    # LLM response cache (Architecture Section 12, cache #3): loaded once,
+    # up front, same precedence as the embedding cache -- local file, then
+    # the index-branch backstop, then empty. persist=True in production,
+    # matching build_index's own default; tests exercise get_cached_or_verify
+    # directly against an in-memory dict instead of touching real infra.
+    llm_cache = load_initial_llm_cache(root=".", persist=True)
+    llm_cache_hits = 0
+    llm_cache_misses = 0
+
     with run_logger.stage("pipeline_loop"):
         for fn in meaningful:
             if budget.truncated:
                 break
             linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
             for section_id in linked_section_ids:
-                if not budget.try_consume():
-                    # Circuit breaker tripped: stop evaluating entirely, don't
-                    # just skip this one pair. Everything from here on is
-                    # reported as truncated in the summary comment, never
-                    # silently dropped.
-                    break
                 section = index["doc_sections"][section_id]
-                verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
-                cost_summary.add("verifier", verdict["usage"])
+                key = verdict_key(fn.old_code, fn.new_code, section.text)
+
+                if key in llm_cache:
+                    # Cache hit: the exact same (old_code, new_code, doc
+                    # section) triple was already judged in a prior run (or
+                    # earlier in this same run) -- reuse that verdict and
+                    # skip the LLM call entirely. Deliberately does NOT
+                    # consume the call budget: a cache hit costs nothing,
+                    # so it would be wrong to let it count against
+                    # max_llm_calls_per_run alongside real calls.
+                    cached = llm_cache[key]
+                    verdict = {"stale": cached["stale"], "diagnosis": cached["diagnosis"], "usage": TokenUsage()}
+                    llm_cache_hits += 1
+                else:
+                    if not budget.try_consume():
+                        # Circuit breaker tripped: stop evaluating entirely,
+                        # don't just skip this one pair. Everything from
+                        # here on is reported as truncated in the summary
+                        # comment, never silently dropped.
+                        break
+                    verdict, hit, llm_cache = get_cached_or_verify(
+                        key, llm_cache, lambda: judge_staleness(fn.old_code, fn.new_code, section.text, model)
+                    )
+                    llm_cache_misses += 1
+                    cost_summary.add("verifier", verdict["usage"])
 
                 if verdict["stale"] is not True:
                     # False (verified accurate) or None (verifier error) — nothing
@@ -213,6 +240,13 @@ def main():
                     validator_result=validator_result,
                 ))
 
+    # Persist the LLM response cache the same way build_index persists the
+    # embedding cache: local file, then the index-branch backstop. Fail-open
+    # (persist_llm_cache already swallows and logs a backstop-push failure)
+    # -- a caching-persistence problem must never block the actual summary
+    # comment this run exists to produce.
+    persist_llm_cache(".", llm_cache)
+
     plan = build_orchestration_plan(findings)
 
     stale_count = sum(1 for f in findings if f.stale is True)
@@ -275,6 +309,8 @@ def main():
         estimated_cost_usd=round(cost_summary.total_cost_usd, 4),
         embedding_cache_hits=index.get("cache_hits", 0),
         embedding_cache_misses=index.get("cache_misses", 0),
+        llm_cache_hits=llm_cache_hits,
+        llm_cache_misses=llm_cache_misses,
     )
 
 
