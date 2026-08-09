@@ -132,7 +132,7 @@ def build_final_comment(
                     qualified_id=entry.qualified_id, heading_path=entry.heading_path, kind=entry.kind,
                     diagnosis=entry.detail, tier=entry.tier, corrector_status=entry.corrector_status,
                     validator_status=entry.validator_status, old_text=entry.old_text, new_text=entry.new_text,
-                    created_at=now,
+                    created_at=now, filepath=entry.filepath,
                 ))
             lines.append("")
 

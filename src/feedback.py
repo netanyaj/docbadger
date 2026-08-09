@@ -62,6 +62,13 @@ class FeedbackSnapshot:
     reason_context: Optional[str] = None       # free text, optional, entirely reviewer-supplied
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    filepath: Optional[str] = None    # the DOC file's path -- added so a "rejected" (false-
+                                        # positive) snapshot can uniquely locate its doc section
+                                        # later (Engineering Decision Log Entry 88, US-5 fold-into-
+                                        # eval-dataset tool). None for any record captured before
+                                        # this field existed -- the fold tool falls back to a
+                                        # heading_path-only search for those, flagging ambiguity
+                                        # rather than guessing.
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -81,6 +88,7 @@ def build_feedback_block(
     old_text: Optional[str] = None,
     new_text: Optional[str] = None,
     created_at: Optional[str] = None,
+    filepath: Optional[str] = None,
 ) -> str:
     """Returns the markdown block to append after a finding's detail text in
     the summary comment. Only call this for kinds in FEEDBACK_ELIGIBLE_KINDS —
@@ -101,6 +109,7 @@ def build_feedback_block(
         "old_text": old_text,
         "new_text": new_text,
         "created_at": created_at,
+        "filepath": filepath,
     }
     marker = f"<!-- docbadger-feedback: {json.dumps(snapshot_data)} -->"
     return (

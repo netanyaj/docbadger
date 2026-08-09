@@ -98,3 +98,12 @@ def test_proposed_correction_with_no_validator_result_is_flagged_not_dropped():
     entry = plan.comment_entries[0]
     assert entry.kind == "flagged_abstained"
     assert "never validated" in entry.detail
+
+
+def test_filepath_threaded_onto_comment_entry_for_every_kind():
+    # Engineering Decision Log Entry 88: filepath must reach CommentEntry
+    # for every kind (not just feedback-eligible ones), since it's set at
+    # PipelineFinding construction, not derived from the kind.
+    verified = _finding(stale=False, tier=None)
+    plan = build_orchestration_plan([verified])
+    assert plan.comment_entries[0].filepath == verified.filepath

@@ -139,3 +139,15 @@ def test_multiline_reason_context_is_preserved():
     )
     results = parse_feedback_from_comment(block)
     assert results[0]["reason_context"] == "Not sure about this one.\nMight need a second look."
+
+
+def test_filepath_round_trips_through_the_marker():
+    block = _sample_block(filepath="docs/x.md").replace("- [ ] Rejected", "- [x] Rejected")
+    results = parse_feedback_from_comment(block)
+    assert results[0]["snapshot"]["filepath"] == "docs/x.md"
+
+
+def test_filepath_defaults_to_none_when_not_passed():
+    block = _sample_block()  # no filepath override -- old-record backward-compat case
+    results = parse_feedback_from_comment(block)
+    assert results[0]["snapshot"]["filepath"] is None

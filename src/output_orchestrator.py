@@ -60,6 +60,9 @@ class CommentEntry:
     validator_status: Optional[str] = None
     old_text: Optional[str] = None
     new_text: Optional[str] = None
+    filepath: Optional[str] = None        # the DOC file's path (PipelineFinding.filepath) --
+                                            # threaded through so a feedback snapshot can uniquely
+                                            # locate the section later (Engineering Decision Log Entry 88)
 
 
 @dataclass
@@ -76,11 +79,11 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
 
     for f in findings:
         if f.stale is False:
-            comment_entries.append(CommentEntry("verified", f.qualified_id, f.heading_path, ""))
+            comment_entries.append(CommentEntry("verified", f.qualified_id, f.heading_path, "", filepath=f.filepath))
             continue
 
         if f.stale is None:
-            comment_entries.append(CommentEntry("check_incomplete", f.qualified_id, f.heading_path, f.diagnosis))
+            comment_entries.append(CommentEntry("check_incomplete", f.qualified_id, f.heading_path, f.diagnosis, filepath=f.filepath))
             continue
 
         # f.stale is True from here down.
@@ -88,6 +91,7 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
             comment_entries.append(CommentEntry(
                 "flagged_low_confidence", f.qualified_id, f.heading_path, f.diagnosis,
                 finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
+                filepath=f.filepath,
             ))
             continue
 
@@ -97,7 +101,7 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 "flagged_abstained", f.qualified_id, f.heading_path,
                 f"{cr.status.value}: {cr.rationale}",
                 finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
-                corrector_status=cr.status.value,
+                corrector_status=cr.status.value, filepath=f.filepath,
             ))
             continue
 
@@ -114,7 +118,7 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 "flagged_abstained", f.qualified_id, f.heading_path,
                 "Corrector proposed a correction but it was never validated — treating as unresolved.",
                 finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
-                corrector_status=cr.status.value,
+                corrector_status=cr.status.value, filepath=f.filepath,
             ))
             continue
 
@@ -126,7 +130,7 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 f"With: `{vr.new_text}`",
                 finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
                 corrector_status=cr.status.value, validator_status=vr.status.value,
-                old_text=vr.old_text, new_text=vr.new_text,
+                old_text=vr.old_text, new_text=vr.new_text, filepath=f.filepath,
             ))
         else:
             comment_entries.append(CommentEntry(
@@ -137,7 +141,7 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
                 f"With: `{vr.new_text}`",
                 finding_id=_finding_id(f.qualified_id, f.heading_path), tier=f.tier,
                 corrector_status=cr.status.value, validator_status=vr.status.value,
-                old_text=vr.old_text, new_text=vr.new_text,
+                old_text=vr.old_text, new_text=vr.new_text, filepath=f.filepath,
             ))
 
     return OrchestrationPlan(comment_entries=comment_entries)
