@@ -160,3 +160,35 @@ def test_comment_only_change_is_not_detected():
     assert "unrelated_function" not in names, (
         "a comment-only change should be invisible to AST-based comparison"
     )
+
+
+def test_classify_change_type_signature_for_added_param():
+    from diff_analyzer import classify_change_type
+
+    old = "def send_email(to, subject, body):\n    pass\n"
+    new = "def send_email(to, subject, body, retries=3):\n    pass\n"
+    assert classify_change_type(old, new) == "signature"
+
+
+def test_classify_change_type_body_only_for_unchanged_signature():
+    from diff_analyzer import classify_change_type
+
+    old = "def add(a, b):\n    return a + b\n"
+    new = "def add(a, b):\n    return a + b + 0\n"
+    assert classify_change_type(old, new) == "body_only"
+
+
+def test_classify_change_type_works_on_class_with_one_method():
+    from diff_analyzer import classify_change_type
+
+    old = "class Config:\n    def __init__(self, host, port=8080):\n        self.host = host\n"
+    new = "class Config:\n    def __init__(self, host, port=8080, api_key=None):\n        self.host = host\n"
+    assert classify_change_type(old, new) == "signature"
+
+
+def test_first_def_qualifies_method_name_with_class_prefix():
+    from diff_analyzer import _first_def
+
+    name, args_dump = _first_def("class Foo:\n    def bar(self, x):\n        pass\n")
+    assert name == "Foo.bar"
+    assert isinstance(args_dump, str) and args_dump

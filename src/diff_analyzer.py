@@ -105,6 +105,46 @@ def _extract_functions(source: str, filepath: str) -> dict[str, tuple[str, str, 
     return functions
 
 
+def _first_def(source: str) -> tuple:
+    """Parses `source` as a standalone snippet -- a single module-level
+    function/method def, or a module-level class def containing one -- and
+    returns (qualified_name, args_dump) for the first def found. Methods
+    are qualified as "ClassName.method_name", matching get_modified_
+    functions's own qualified_id convention. Raises ValueError if no
+    function/method def is found, since a caller passing code with none is
+    a bug, not a case to silently paper over.
+
+    This is the standalone-snippet counterpart to _extract_functions,
+    which instead parses a WHOLE FILE looking for many functions at once.
+    Needed because callers like the eval harness's confidence-tier
+    calibration check (Architecture Section 19 point 4) only ever have an
+    isolated (old_code, new_code) pair for one case, never a full file.
+    """
+    tree = ast.parse(source)
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return node.name, ast.dump(node.args, include_attributes=False)
+        if isinstance(node, ast.ClassDef):
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    return f"{node.name}.{child.name}", ast.dump(child.args, include_attributes=False)
+    raise ValueError("no function or method definition found in source")
+
+
+def classify_change_type(old_code: str, new_code: str) -> str:
+    """Same signature-vs-body rule get_modified_functions applies inline
+    against real diffs (params added/removed/renamed/reordered/default
+    changed = 'signature', anything else = 'body_only'), applied instead
+    to an isolated (old_code, new_code) pair via _first_def. Exists so the
+    eval harness's calibration check can classify each case's change_type
+    using the real rule, not a re-guessed approximation that could quietly
+    drift from what get_modified_functions actually does.
+    """
+    _, old_args_dump = _first_def(old_code)
+    _, new_args_dump = _first_def(new_code)
+    return "signature" if old_args_dump != new_args_dump else "body_only"
+
+
 def get_modified_functions(base_sha: str, head_sha: str) -> list[ModifiedFunction]:
     """Main entry point: returns every function/method whose AST structure
     changed between base_sha and head_sha, across all changed .py files."""
