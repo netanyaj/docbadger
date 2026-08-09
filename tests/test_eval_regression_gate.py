@@ -66,15 +66,33 @@ def test_multiple_regressed_metrics_all_reported():
     assert len(outcome["reasons"]) == 3
 
 
-def test_real_baseline_placeholder_file_is_bootstrap_mode():
-    # Guards against the shipped eval/baseline_metrics.json ever silently
-    # losing its bootstrap-placeholder status without a real run backing
-    # it up.
+def test_real_baseline_file_is_captured_and_internally_consistent():
+    # eval/baseline_metrics.json moved from a bootstrap placeholder to a
+    # real captured run (Engineering Decision Log Entry 91). This guards
+    # two things: it's no longer in bootstrap mode (a real comparison is
+    # now possible), and its stated verifier_metrics match what
+    # eval_metrics.compute_verifier_metrics actually computes from its own
+    # results array -- catching any future hand-edit of one without the
+    # other silently drifting apart.
     import json
+    import sys
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    from eval_metrics import compute_verifier_metrics
 
     path = os.path.join(os.path.dirname(__file__), "..", "eval", "baseline_metrics.json")
     with open(path) as f:
         baseline = json.load(f)
-    current = {"verifier_metrics": _metrics(0.0, 0.0, 0.0)}
-    outcome = check_regression(baseline, current)
-    assert outcome["bootstrap"] is True
+
+    assert baseline["status"] == "captured"
+
+    # Comparing the real baseline against itself must never be flagged as a
+    # regression -- the clearest possible sanity check that check_regression
+    # doesn't misfire on a real, non-placeholder file.
+    outcome = check_regression(baseline, baseline)
+    assert outcome["bootstrap"] is False
+    assert outcome["regressed"] is False
+
+    recomputed = compute_verifier_metrics(baseline["results"])
+    for key in ("tp", "fp", "fn", "tn", "precision", "recall", "f1"):
+        assert recomputed[key] == baseline["verifier_metrics"][key], f"{key} drifted from the results array"
