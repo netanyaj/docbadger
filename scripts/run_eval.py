@@ -82,6 +82,11 @@ def run_case(case: dict, model: str, client=None) -> dict:
     # about exactly which version produced each number.
     result["verifier_prompt_version"] = verdict.get("prompt_version", VERIFIER_PROMPT_VERSION)
 
+    if "verifier_expected_stale" in labels:
+        # Stored unconditionally (even on an errored call) so
+        # eval_metrics.compute_verifier_metrics can tell "no prediction"
+        # apart from "wrong prediction" using verifier_stale alone.
+        result["verifier_expected_stale"] = labels["verifier_expected_stale"]
     if "verifier_expected_stale" in labels and not result["verifier_errored"]:
         result["verifier_match"] = verdict["stale"] == labels["verifier_expected_stale"]
 
@@ -147,6 +152,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--verbose", action="store_true", help="print full per-case JSON")
     parser.add_argument("--lint-only", action="store_true", help="validate case file schemas, no API calls")
+    parser.add_argument("--save-results", metavar="PATH", help="write per-case results + computed metrics as JSON to PATH")
     args = parser.parse_args()
 
     cases = load_cases()
@@ -196,6 +202,40 @@ def main():
         if checked:
             correct = sum(1 for r in checked if r[key])
             print(f"{label} match: {correct}/{len(checked)}")
+
+    # Architecture Section 19 point 2: "precision, recall, F1 on staleness
+    # detection." Computed here (not inline) via eval_metrics.py's pure
+    # function so scripts/eval_regression_gate.py (item 8/11) can reuse the
+    # exact same computation against a saved --save-results file, rather
+    # than reimplementing it.
+    from eval_metrics import compute_verifier_metrics
+
+    metrics = compute_verifier_metrics(results)
+    print()
+    print("--- Verifier precision/recall/F1 (staleness detection) ---")
+    if metrics["counted"] == 0:
+        print("No scorable cases (need both a real prediction and a gold label).")
+    else:
+        def _fmt(x):
+            return f"{x:.2%}" if x is not None else "n/a"
+        print(f"precision={_fmt(metrics['precision'])} recall={_fmt(metrics['recall'])} "
+              f"f1={_fmt(metrics['f1'])} (tp={metrics['tp']} fp={metrics['fp']} "
+              f"fn={metrics['fn']} tn={metrics['tn']}, n={metrics['counted']})")
+
+    if args.save_results:
+        payload = {
+            "prompt_versions": {
+                "verifier": VERIFIER_PROMPT_VERSION,
+                "corrector": CORRECTOR_PROMPT_VERSION,
+                "validator": VALIDATOR_PROMPT_VERSION,
+            },
+            "model": model,
+            "verifier_metrics": metrics,
+            "results": results,
+        }
+        with open(args.save_results, "w") as f:
+            json.dump(payload, f, indent=2)
+        print(f"\nSaved results + metrics to {args.save_results}")
 
 
 if __name__ == "__main__":

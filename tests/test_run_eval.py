@@ -130,3 +130,22 @@ def test_lint_case_passes_a_well_formed_case():
     good = _case()
     problems = lint_case("good.json", good)
     assert problems == []
+
+
+def test_result_carries_gold_label_for_downstream_metrics():
+    # eval_metrics.compute_verifier_metrics needs verifier_expected_stale
+    # on the result itself (not just verifier_match) to distinguish false
+    # positives from false negatives -- a plain match/no-match boolean
+    # can't tell those apart.
+    client = FakeOpenAIClient([json.dumps({"stale": True, "diagnosis": "d"})])
+    case = _case(labels={"verifier_expected_stale": False})
+    result = run_case(case, model="openai/gpt-4o", client=client)
+    assert result["verifier_expected_stale"] is False
+    assert result["verifier_stale"] is True
+
+
+def test_result_carries_prompt_version():
+    client = FakeOpenAIClient([json.dumps({"stale": True, "diagnosis": "d"})])
+    case = _case(labels={"verifier_expected_stale": True})
+    result = run_case(case, model="openai/gpt-4o", client=client)
+    assert result["verifier_prompt_version"] == "verifier-v1"

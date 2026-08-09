@@ -1,0 +1,62 @@
+name: Eval Regression Gate
+
+# Architecture Section 13: "every change to DocBadger's code runs the
+# Action against a small set of fixture repos with known, pre-labeled
+# staleness cases (a subset of the eval dataset) as a regression gate
+# before any new version is tagged." Section 19 point 3: "the eval harness
+# runs automatically whenever a prompt changes ... A prompt change that
+# regresses precision/recall below the previous version's numbers blocks
+# that version from being tagged."
+#
+# Path-filtered to the prompt-bearing stage modules and the dataset itself
+# -- NOT every push/PR -- because scripts/run_eval.py makes real, paid LLM
+# API calls (unlike the free confidence-calibration check already running
+# unconditionally in tests.yml). "Whenever a prompt changes" is exactly
+# what the path filter targets.
+#
+# Requires an OPENROUTER_API_KEY repo secret (or the appropriate provider
+# key per llm_client.py) to actually run -- if it's not configured, this
+# workflow will fail at the run_eval.py step with a clear message rather
+# than silently skipping, so a missing secret is visible, not silent.
+
+on:
+  pull_request:
+    paths:
+      - "src/verifier.py"
+      - "src/corrector.py"
+      - "src/validator.py"
+      - "eval/dataset/**"
+  workflow_dispatch: {}
+
+jobs:
+  eval-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint eval case files (free, no API calls)
+        run: python scripts/run_eval.py --lint-only
+
+      - name: Run real eval pipeline
+        env:
+          LLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python scripts/run_eval.py --save-results /tmp/current_eval_results.json
+
+      - name: Compare against baseline
+        run: python scripts/eval_regression_gate.py --results /tmp/current_eval_results.json
+
+      - name: Upload results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: /tmp/current_eval_results.json

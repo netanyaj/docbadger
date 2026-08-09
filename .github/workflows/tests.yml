@@ -22,3 +22,10 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v
+
+      - name: Confidence-tier calibration check
+        # Architecture Section 19 point 4 -- zero API cost (no LLM calls),
+        # so it runs on every push/PR alongside the unit suite, unlike the
+        # real eval-regression-gate.yml workflow (which makes real, paid
+        # API calls and is path-filtered to prompt-relevant changes only).
+        run: python scripts/confidence_calibration_check.py --verbose
