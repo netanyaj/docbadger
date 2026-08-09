@@ -121,9 +121,21 @@ def build_index(
         cid: chunk for cid, chunk in code_chunks.items() if cid not in heuristic_links
     }
 
+    cache_hits = 0
+    cache_misses = 0
+
     def cached_embed_fn(texts: list[str]) -> list[list[float]]:
-        nonlocal running_cache
+        nonlocal running_cache, cache_hits, cache_misses
         pairs = [(_content_hash(t), t) for t in texts]
+        # Counted BEFORE the call updates running_cache, against the cache
+        # state as it actually was when each hash was looked up -- this is
+        # what "hit" means for logging purposes (Architecture Section 15),
+        # distinct from get_cached_or_embed's own return value, which is
+        # deliberately left untouched (no new return element) so its
+        # existing, already-tested interface doesn't have to change.
+        batch_hits = sum(1 for h, _ in pairs if h in running_cache)
+        cache_hits += batch_hits
+        cache_misses += len(pairs) - batch_hits
         result_map, running_cache = get_cached_or_embed(pairs, running_cache, embed_fn)
         return [result_map[h] for h, _ in pairs]
 
@@ -160,7 +172,13 @@ def build_index(
             # consistent with the fail-open principle elsewhere in the pipeline.
             print(f"Warning: could not push index to backstop branch: {e}")
 
-    return {"code_chunks": code_chunks, "doc_sections": doc_sections, "links": combined_links}
+    return {
+        "code_chunks": code_chunks,
+        "doc_sections": doc_sections,
+        "links": combined_links,
+        "cache_hits": cache_hits,
+        "cache_misses": cache_misses,
+    }
 
 
 def get_linked_doc_sections(chunk_id: str, index: dict) -> list[str]:

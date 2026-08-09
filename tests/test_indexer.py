@@ -211,6 +211,32 @@ def test_second_run_reuses_cache_and_skips_unchanged_embeddings():
     assert second_run_calls == 0  # nothing changed — cache should cover everything
 
 
+def test_cache_hit_miss_counts_reported_for_run_logging():
+    # Architecture Section 15's structured run log needs real embedding
+    # cache hit/miss numbers, not just "did it work." First run against a
+    # fresh cache: whatever is embedding-linked must be a miss (nothing to
+    # hit yet). Second run, nothing changed: the same lookups must now be
+    # hits, and there must be zero misses -- same fixture/pattern as
+    # test_second_run_reuses_cache_and_skips_unchanged_embeddings, just
+    # asserting the counts build_index now returns instead of a wrapped
+    # embed_fn's call count.
+    work_dir = _build_repo_with_fixtures_and_fake_origin()
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        first_index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=True)
+        second_index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=True)
+    finally:
+        os.chdir(original_cwd)
+
+    assert first_index["cache_misses"] > 0
+    assert first_index["cache_hits"] == 0
+
+    assert second_index["cache_hits"] > 0
+    assert second_index["cache_misses"] == 0
+    assert second_index["cache_hits"] == first_index["cache_misses"]
+
+
 def test_link_sources_are_labeled_correctly():
     work_dir = _build_repo_with_fixtures_and_fake_origin()
     index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=False)

@@ -30,6 +30,7 @@ from output_orchestrator import PipelineFinding, build_orchestration_plan
 from comment_builder import build_final_comment
 from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative
 from llm_call_budget import LLMCallBudget, parse_max_calls
+from run_logger import RunLogger
 
 
 def _fail(message: str) -> None:
@@ -83,99 +84,61 @@ def main():
     # nothing downstream ever consumed; a real, silently-dead input.
     docs_path = os.environ.get("DOCS_PATH", ".")
 
-    try:
-        all_modified = get_modified_functions(base_sha, head_sha)
-    except Exception as e:
-        _fail(f"Diff analysis failed: {e}")
-        return
+    run_logger = RunLogger(repo_full_name=repo_full_name, pr_number=pr_number)
+
+    with run_logger.stage("diff_analysis"):
+        try:
+            all_modified = get_modified_functions(base_sha, head_sha)
+        except Exception as e:
+            _fail(f"Diff analysis failed: {e}")
+            return
 
     meaningful = filter_meaningful(all_modified)
 
-    try:
-        index = build_index(root=".", docs_root=docs_path)
-    except Exception as e:
-        _fail(f"Indexing failed: {e}")
-        return
+    with run_logger.stage("indexing"):
+        try:
+            index = build_index(root=".", docs_root=docs_path)
+        except Exception as e:
+            _fail(f"Indexing failed: {e}")
+            return
 
     findings = []  # list of PipelineFinding
     cost_summary = RunCostSummary(model=model)
     budget = LLMCallBudget(parse_max_calls(os.environ.get("MAX_LLM_CALLS_PER_RUN", "")))
 
-    for fn in meaningful:
-        if budget.truncated:
-            break
-        linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
-        for section_id in linked_section_ids:
-            if not budget.try_consume():
-                # Circuit breaker tripped: stop evaluating entirely, don't
-                # just skip this one pair. Everything from here on is
-                # reported as truncated in the summary comment, never
-                # silently dropped.
+    with run_logger.stage("pipeline_loop"):
+        for fn in meaningful:
+            if budget.truncated:
                 break
-            section = index["doc_sections"][section_id]
-            verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
-            cost_summary.add("verifier", verdict["usage"])
-
-            if verdict["stale"] is not True:
-                # False (verified accurate) or None (verifier error) — nothing
-                # further to do for this link; record and move on.
-                findings.append(PipelineFinding(
-                    filepath=section.filepath,
-                    qualified_id=fn.qualified_id,
-                    heading_path=section.heading_path,
-                    stale=verdict["stale"],
-                    diagnosis=verdict["diagnosis"],
-                ))
-                continue
-
-            confidence = score_confidence_for_link(fn, section_id, index)
-
-            if confidence.tier == "low":
-                # Corrector deliberately not called for Low-tier findings —
-                # see Engineering Decision Log Entry 23.
-                findings.append(PipelineFinding(
-                    filepath=section.filepath,
-                    qualified_id=fn.qualified_id,
-                    heading_path=section.heading_path,
-                    stale=True,
-                    diagnosis=verdict["diagnosis"],
-                    tier=confidence.tier,
-                ))
-                continue
-
-            if not budget.try_consume():
-                # Verifier already ran for this pair (that call was already
-                # spent and can't be un-spent); the Corrector call it would
-                # normally trigger is what gets cut off. This pair still
-                # shows up as a stale/Medium-or-High-tier finding below,
-                # just without a drafted correction -- same shape as a
-                # Low-tier skip (Entry 23), for a different reason.
-                findings.append(PipelineFinding(
-                    filepath=section.filepath,
-                    qualified_id=fn.qualified_id,
-                    heading_path=section.heading_path,
-                    stale=True,
-                    diagnosis=verdict["diagnosis"],
-                    tier=confidence.tier,
-                ))
-                break
-
-            corrector_result = generate_correction(
-                diagnosis=verdict["diagnosis"],
-                new_code=fn.new_code,
-                doc_section=section.text,
-                model=model,
-            )
-            cost_summary.add("corrector", corrector_result.usage)
-
-            validator_result = None
-            if corrector_result.status == CorrectionStatus.PROPOSED:
+            linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
+            for section_id in linked_section_ids:
                 if not budget.try_consume():
-                    # Corrector proposed a real fix but the budget ran out
-                    # right before the independent Validator check -- never
-                    # show an unvalidated correction as ready-to-apply, so
-                    # this is recorded as an abstained/unready finding, not
-                    # silently promoted past the quality gate it needs.
+                    # Circuit breaker tripped: stop evaluating entirely, don't
+                    # just skip this one pair. Everything from here on is
+                    # reported as truncated in the summary comment, never
+                    # silently dropped.
+                    break
+                section = index["doc_sections"][section_id]
+                verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
+                cost_summary.add("verifier", verdict["usage"])
+
+                if verdict["stale"] is not True:
+                    # False (verified accurate) or None (verifier error) — nothing
+                    # further to do for this link; record and move on.
+                    findings.append(PipelineFinding(
+                        filepath=section.filepath,
+                        qualified_id=fn.qualified_id,
+                        heading_path=section.heading_path,
+                        stale=verdict["stale"],
+                        diagnosis=verdict["diagnosis"],
+                    ))
+                    continue
+
+                confidence = score_confidence_for_link(fn, section_id, index)
+
+                if confidence.tier == "low":
+                    # Corrector deliberately not called for Low-tier findings —
+                    # see Engineering Decision Log Entry 23.
                     findings.append(PipelineFinding(
                         filepath=section.filepath,
                         qualified_id=fn.qualified_id,
@@ -183,29 +146,72 @@ def main():
                         stale=True,
                         diagnosis=verdict["diagnosis"],
                         tier=confidence.tier,
-                        corrector_result=corrector_result,
-                        validator_result=None,
+                    ))
+                    continue
+
+                if not budget.try_consume():
+                    # Verifier already ran for this pair (that call was already
+                    # spent and can't be un-spent); the Corrector call it would
+                    # normally trigger is what gets cut off. This pair still
+                    # shows up as a stale/Medium-or-High-tier finding below,
+                    # just without a drafted correction -- same shape as a
+                    # Low-tier skip (Entry 23), for a different reason.
+                    findings.append(PipelineFinding(
+                        filepath=section.filepath,
+                        qualified_id=fn.qualified_id,
+                        heading_path=section.heading_path,
+                        stale=True,
+                        diagnosis=verdict["diagnosis"],
+                        tier=confidence.tier,
                     ))
                     break
-                validator_result = validate_correction(
+
+                corrector_result = generate_correction(
+                    diagnosis=verdict["diagnosis"],
                     new_code=fn.new_code,
                     doc_section=section.text,
-                    old_text=corrector_result.old_text,
-                    new_text=corrector_result.new_text,
                     model=model,
                 )
-                cost_summary.add("validator", validator_result.usage)
+                cost_summary.add("corrector", corrector_result.usage)
 
-            findings.append(PipelineFinding(
-                filepath=section.filepath,
-                qualified_id=fn.qualified_id,
-                heading_path=section.heading_path,
-                stale=True,
-                diagnosis=verdict["diagnosis"],
-                tier=confidence.tier,
-                corrector_result=corrector_result,
-                validator_result=validator_result,
-            ))
+                validator_result = None
+                if corrector_result.status == CorrectionStatus.PROPOSED:
+                    if not budget.try_consume():
+                        # Corrector proposed a real fix but the budget ran out
+                        # right before the independent Validator check -- never
+                        # show an unvalidated correction as ready-to-apply, so
+                        # this is recorded as an abstained/unready finding, not
+                        # silently promoted past the quality gate it needs.
+                        findings.append(PipelineFinding(
+                            filepath=section.filepath,
+                            qualified_id=fn.qualified_id,
+                            heading_path=section.heading_path,
+                            stale=True,
+                            diagnosis=verdict["diagnosis"],
+                            tier=confidence.tier,
+                            corrector_result=corrector_result,
+                            validator_result=None,
+                        ))
+                        break
+                    validator_result = validate_correction(
+                        new_code=fn.new_code,
+                        doc_section=section.text,
+                        old_text=corrector_result.old_text,
+                        new_text=corrector_result.new_text,
+                        model=model,
+                    )
+                    cost_summary.add("validator", validator_result.usage)
+
+                findings.append(PipelineFinding(
+                    filepath=section.filepath,
+                    qualified_id=fn.qualified_id,
+                    heading_path=section.heading_path,
+                    stale=True,
+                    diagnosis=verdict["diagnosis"],
+                    tier=confidence.tier,
+                    corrector_result=corrector_result,
+                    validator_result=validator_result,
+                ))
 
     plan = build_orchestration_plan(findings)
 
@@ -237,16 +243,39 @@ def main():
     print(comment_body)
 
     if github_token:
-        try:
-            gh = Github(auth=Auth.Token(github_token))
-            repo = gh.get_repo(repo_full_name)
-            pull = repo.get_pull(pr_number)
-            pull.create_issue_comment(comment_body)
-        except Exception as e:
-            _fail(f"Could not post PR comment: {e}")
-            return
+        with run_logger.stage("comment_post"):
+            try:
+                gh = Github(auth=Auth.Token(github_token))
+                repo = gh.get_repo(repo_full_name)
+                pull = repo.get_pull(pr_number)
+                pull.create_issue_comment(comment_body)
+            except Exception as e:
+                _fail(f"Could not post PR comment: {e}")
+                return
     else:
         print("No GITHUB_TOKEN found — printed comment above instead of posting.")
+
+    # Structured JSON log, per Architecture Section 15/16 -- one line,
+    # printed to stdout so it's readable directly in the Actions run
+    # output, no new infra. Emitted only on a successfully-completed run;
+    # a hard failure already exits early via _fail() and has its own
+    # plain-text error line, consistent with everything else in this
+    # pipeline being fail-open/best-effort about secondary reporting.
+    run_logger.emit(
+        model=model,
+        meaningful_changes_found=len(meaningful),
+        known_links_checked=len(findings),
+        stale_sections_found=stale_count,
+        corrections_proposed=sum(1 for e in plan.comment_entries if e.kind == "correction_ready"),
+        errors_encountered=error_count,
+        llm_calls_made=budget.calls_made,
+        llm_calls_budget=budget.max_calls,
+        budget_truncated=budget.truncated,
+        tokens_total=cost_summary.total_tokens,
+        estimated_cost_usd=round(cost_summary.total_cost_usd, 4),
+        embedding_cache_hits=index.get("cache_hits", 0),
+        embedding_cache_misses=index.get("cache_misses", 0),
+    )
 
 
 if __name__ == "__main__":
