@@ -76,6 +76,11 @@ def main():
     pr_number = pr["number"]
     repo_full_name = os.environ["GITHUB_REPOSITORY"]
     model = os.environ.get("LLM_MODEL", "openai/gpt-4o")
+    # DOCS_PATH (action.yml `docs_path` input) restricts DOC scanning only,
+    # not code scanning — see indexer.build_index's docs_root docstring.
+    # Previously declared in action.yml and read here into an env var that
+    # nothing downstream ever consumed; a real, silently-dead input.
+    docs_path = os.environ.get("DOCS_PATH", ".")
 
     try:
         all_modified = get_modified_functions(base_sha, head_sha)
@@ -86,7 +91,7 @@ def main():
     meaningful = filter_meaningful(all_modified)
 
     try:
-        index = build_index(root=".")
+        index = build_index(root=".", docs_root=docs_path)
     except Exception as e:
         _fail(f"Indexing failed: {e}")
         return

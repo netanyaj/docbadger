@@ -74,6 +74,44 @@ def _fake_embed_fn(texts):
     return vectors
 
 
+def test_docs_root_restricts_doc_scanning_but_not_code_scanning():
+    """DOCS_PATH (action.yml `docs_path` input) is meant to restrict DOC
+    scanning to a subdirectory, per Architecture Section 4 ("Restrict doc
+    scanning to a docs directory"). Code scanning must NOT be restricted
+    by it -- a code change relevant to a doc section can live anywhere in
+    the repo, not just under docs/. Reproduces the real bug directly: a
+    second doc file placed OUTSIDE docs_root must be invisible to the
+    index once docs_root is passed, while payments.py (at the repo root,
+    outside docs_root) must still be parsed and linkable."""
+    work_dir = _build_repo_with_fixtures_and_fake_origin()
+
+    # A second, real doc file living OUTSIDE the docs/ subdirectory --
+    # should never be scanned once docs_root=docs/ is passed.
+    with open(os.path.join(work_dir, "ROOT_NOTES.md"), "w") as f:
+        f.write("# Root Notes\n\n## Stray\nThis should not be scanned once docs_root is set.\n")
+
+    docs_root = os.path.join(work_dir, "docs")
+    index = build_index(root=work_dir, docs_root=docs_root, embed_fn=_fake_embed_fn, persist=False)
+
+    doc_section_ids = list(index["doc_sections"].keys())
+    assert not any("ROOT_NOTES.md" in sid for sid in doc_section_ids), (
+        "docs_root did not restrict doc scanning -- a doc file outside "
+        "docs_root was still parsed and indexed"
+    )
+    assert any("guide.md" in sid for sid in doc_section_ids), (
+        "docs_root over-restricted -- the real doc file inside docs_root "
+        "was not found"
+    )
+
+    # Code scanning must be unaffected -- payments.py lives at the repo
+    # root, outside docs_root, and must still be parsed and linkable.
+    sections = get_linked_doc_sections("payments.py::send_email", index)
+    assert any("Emails" in s for s in sections), (
+        "code scanning was incorrectly restricted by docs_root -- "
+        "payments.py::send_email should still link normally"
+    )
+
+
 def test_heuristic_link_found_via_backtick_mention():
     work_dir = _build_repo_with_fixtures_and_fake_origin()
     index = build_index(root=work_dir, embed_fn=_fake_embed_fn, persist=False)

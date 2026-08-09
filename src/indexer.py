@@ -77,7 +77,12 @@ def _drop_ancestor_duplicates(section_source_map: dict, doc_sections: dict) -> d
     return {sid: section_source_map[sid] for sid in kept_ids}
 
 
-def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool = True) -> dict:
+def build_index(
+    root: str = ".",
+    embed_fn: Callable = embed_texts,
+    persist: bool = True,
+    docs_root: str | None = None,
+) -> dict:
     """Main entry point. Returns:
         {"code_chunks": {...}, "doc_sections": {...},
          "links": {chunk_id: {section_id: source_label, ...}}}
@@ -91,12 +96,22 @@ def build_index(root: str = ".", embed_fn: Callable = embed_texts, persist: bool
 
     embed_fn is injectable for testing (avoid real API calls); persist can
     be disabled for the same reason (avoid real git pushes in tests).
+
+    docs_root restricts DOC scanning only (the action.yml `docs_path`
+    input) — code scanning always covers the full `root`, since a code
+    change relevant to a doc section can live anywhere in the repo, not
+    just under the docs directory. Defaults to `root` when not given, so
+    every existing caller's behavior (scan everything from `root`) is
+    unchanged unless `docs_root` is explicitly passed. Previously this
+    input was declared in action.yml and read into the DOCS_PATH env var
+    by main.py, but no code path ever consumed it — a real, silently-dead
+    piece of advertised configuration.
     """
     cache = load_initial_cache(root, persist=persist)
     running_cache = dict(cache)
 
     code_chunks = get_all_code_chunks(root)
-    doc_sections = get_all_doc_sections(root)
+    doc_sections = get_all_doc_sections(docs_root if docs_root is not None else root)
 
     heuristic_links = build_heuristic_links_with_source(code_chunks, doc_sections)
 
