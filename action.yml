@@ -20,6 +20,15 @@ inputs:
     description: "'open' (never blocks PR on internal failure) or 'closed' (blocks)"
     required: false
     default: "open"
+  confidence_thresholds:
+    description: >-
+      Override the confidence rubric's tier boundaries (Engineering Decision
+      Log Entry 78). Format: "high:70,medium:40" (both keys required
+      together). Provisional defaults are 70/40 -- see confidence_rubric.py.
+      A malformed or out-of-range value falls back to the defaults and
+      reports why on stderr; it never fails the run.
+    required: false
+    default: ""
 
 outputs:
   meaningful_changes_found:
@@ -41,3 +50,4 @@ runs:
     LLM_MODEL: ${{ inputs.model }}
     DOCS_PATH: ${{ inputs.docs_path }}
     FAIL_MODE: ${{ inputs.fail_mode }}
+    CONFIDENCE_THRESHOLDS: ${{ inputs.confidence_thresholds }}

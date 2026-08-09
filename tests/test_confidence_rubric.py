@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from confidence_rubric import score_confidence, score_confidence_for_link, HIGH_THRESHOLD, MEDIUM_THRESHOLD
+from confidence_rubric import score_confidence, score_confidence_for_link, HIGH_THRESHOLD, MEDIUM_THRESHOLD, parse_threshold_overrides
 
 
 def test_signature_change_scores_higher_than_body_only():
@@ -109,3 +109,43 @@ def test_score_confidence_for_link_computes_blast_radius_from_index():
     # blast_radius=2 here, not 1 — should score lower than the single-link case above.
     single_link_result = score_confidence(change_type="signature", link_source="exact", blast_radius=1)
     assert result.score < single_link_result.score
+
+
+def test_parse_threshold_overrides_applies_valid_string():
+    high, medium = parse_threshold_overrides("high:80,medium:50")
+    assert (high, medium) == (80, 50)
+
+
+def test_parse_threshold_overrides_order_independent():
+    high, medium = parse_threshold_overrides("medium:30,high:60")
+    assert (high, medium) == (60, 30)
+
+
+def test_parse_threshold_overrides_empty_string_uses_defaults():
+    high, medium = parse_threshold_overrides("", default_high=70, default_medium=40)
+    assert (high, medium) == (70, 40)
+
+
+def test_parse_threshold_overrides_malformed_string_falls_back_to_defaults():
+    # Missing "medium" key entirely -- must not raise, must fall back.
+    high, medium = parse_threshold_overrides("high:80", default_high=70, default_medium=40)
+    assert (high, medium) == (70, 40)
+
+
+def test_parse_threshold_overrides_non_numeric_falls_back_to_defaults():
+    high, medium = parse_threshold_overrides("high:oops,medium:10", default_high=70, default_medium=40)
+    assert (high, medium) == (70, 40)
+
+
+def test_parse_threshold_overrides_medium_gte_high_falls_back_to_defaults():
+    # Same class of bug the rubric's own tier-cap logic (Entry 21) exists to
+    # prevent: a threshold config that would make "medium" unreachable, or
+    # invert the two tiers, must never silently apply.
+    high, medium = parse_threshold_overrides("high:40,medium:70", default_high=70, default_medium=40)
+    assert (high, medium) == (70, 40)
+
+
+def test_parse_threshold_overrides_out_of_range_falls_back_to_defaults():
+    high, medium = parse_threshold_overrides("high:150,medium:40", default_high=70, default_medium=40)
+    assert (high, medium) == (70, 40)
+

@@ -31,6 +31,8 @@ treat this as "a reasonable, explainable first attempt," not "the right
 answer." Same honesty standard as the embedding similarity threshold.
 """
 
+import os
+import sys
 from dataclasses import dataclass, field
 
 # --- Point values (provisional — see module docstring) ---
@@ -39,8 +41,52 @@ LINK_CERTAINTY_POINTS = {"exact": 30, "leaf": 20, "embedding": 10}
 NEUTRAL_HISTORICAL_ACCURACY_POINTS = 10  # fixed until Milestone 6 feedback loop exists
 
 # --- Tier boundaries (provisional — see module docstring) ---
-HIGH_THRESHOLD = 70
-MEDIUM_THRESHOLD = 40
+DEFAULT_HIGH_THRESHOLD = 70
+DEFAULT_MEDIUM_THRESHOLD = 40
+
+
+def parse_threshold_overrides(
+    raw: str, default_high: int = DEFAULT_HIGH_THRESHOLD, default_medium: int = DEFAULT_MEDIUM_THRESHOLD
+) -> tuple[int, int]:
+    """Parses the action.yml `confidence_thresholds` input (env var
+    CONFIDENCE_THRESHOLDS), format "high:70,medium:40" (order-independent,
+    both keys required together). A pure function, not read-at-import-time
+    logic, specifically so it's directly unit-testable with explicit
+    strings rather than needing to fiddle with os.environ + module reload.
+
+    Same fail-open discipline as the rest of this pipeline (Entry 4): a
+    malformed override string, an out-of-range value, or medium >= high
+    never crashes a run — it's reported to stderr and the defaults are
+    used instead, exactly like an LLM/infra failure never blocks the PR.
+    """
+    if not raw or not raw.strip():
+        return default_high, default_medium
+    try:
+        parts = dict(p.split(":") for p in raw.split(","))
+        high = int(parts["high"])
+        medium = int(parts["medium"])
+    except Exception:
+        print(
+            f"confidence_thresholds override '{raw}' is malformed "
+            f"(expected 'high:70,medium:40') — using defaults "
+            f"{default_high}/{default_medium}.",
+            file=sys.stderr,
+        )
+        return default_high, default_medium
+
+    if not (0 <= medium < high <= 100):
+        print(
+            f"confidence_thresholds override 'high:{high},medium:{medium}' "
+            f"is out of range (need 0 <= medium < high <= 100) — using "
+            f"defaults {default_high}/{default_medium}.",
+            file=sys.stderr,
+        )
+        return default_high, default_medium
+
+    return high, medium
+
+
+HIGH_THRESHOLD, MEDIUM_THRESHOLD = parse_threshold_overrides(os.environ.get("CONFIDENCE_THRESHOLDS", ""))
 
 
 def _blast_radius_points(blast_radius: int) -> int:
