@@ -29,6 +29,16 @@ inputs:
       reports why on stderr; it never fails the run.
     required: false
     default: ""
+  max_llm_calls_per_run:
+    description: >-
+      Hard ceiling on total LLM calls (Verifier + Corrector + Validator
+      combined) for a single run -- a real circuit breaker, not just a cost
+      estimate. Default 50. Once hit, the run stops evaluating further
+      findings and says so explicitly in the summary comment rather than
+      silently showing fewer results. A malformed or non-positive value
+      falls back to the default and reports why on stderr.
+    required: false
+    default: ""
 
 outputs:
   meaningful_changes_found:
@@ -51,3 +61,4 @@ runs:
     DOCS_PATH: ${{ inputs.docs_path }}
     FAIL_MODE: ${{ inputs.fail_mode }}
     CONFIDENCE_THRESHOLDS: ${{ inputs.confidence_thresholds }}
+    MAX_LLM_CALLS_PER_RUN: ${{ inputs.max_llm_calls_per_run }}

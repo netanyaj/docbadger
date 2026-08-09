@@ -93,3 +93,13 @@ def test_cost_lines_are_included_when_provided():
 def test_cost_lines_omitted_when_not_provided():
     body = build_final_comment(meaningful_count=1, comment_entries=[], error_count=0)
     assert "Estimated cost" not in body
+
+def test_budget_truncated_note_shown_when_true():
+    body = build_final_comment(meaningful_count=5, comment_entries=[], error_count=0, budget_truncated=True)
+    assert "LLM call budget" in body
+    assert "max_llm_calls_per_run" in body
+
+
+def test_budget_truncated_note_omitted_by_default():
+    body = build_final_comment(meaningful_count=5, comment_entries=[], error_count=0)
+    assert "LLM call budget" not in body

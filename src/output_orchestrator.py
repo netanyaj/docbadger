@@ -103,8 +103,13 @@ def build_orchestration_plan(findings: list) -> OrchestrationPlan:
 
         vr = f.validator_result
         if vr is None:
-            # Defensive: a correctly-wired main.py always validates a proposed
-            # correction. If this ever fires, treat it as a flag, not a silent drop.
+            # No longer purely defensive/theoretical: main.py's LLM call
+            # budget (llm_call_budget.py, Architecture Section 4's circuit
+            # breaker) can legitimately produce this -- a correction gets
+            # proposed, then the ceiling trips before the independent
+            # Validator check runs. Never promoted to ready-to-apply
+            # without validation regardless of why it's missing; always a
+            # flag, never a silent drop.
             comment_entries.append(CommentEntry(
                 "flagged_abstained", f.qualified_id, f.heading_path,
                 "Corrector proposed a correction but it was never validated — treating as unresolved.",

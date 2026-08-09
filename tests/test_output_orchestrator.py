@@ -82,3 +82,19 @@ def test_multiple_findings_across_all_kinds_in_one_plan():
     assert len(plan.comment_entries) == 4
     kinds = {e.kind for e in plan.comment_entries}
     assert kinds == {"verified", "flagged_low_confidence", "flagged_abstained", "correction_ready"}
+
+def test_proposed_correction_with_no_validator_result_is_flagged_not_dropped():
+    # Previously a purely defensive/theoretical branch; now a real,
+    # reachable path via main.py's LLM call budget (llm_call_budget.py,
+    # Architecture Section 4's circuit breaker): a correction gets
+    # proposed, then the ceiling trips before the independent Validator
+    # check runs. Must never be silently promoted to ready-to-apply, and
+    # must never just vanish -- it has to surface as a flag.
+    cr = CorrectorResult(
+        status=CorrectionStatus.PROPOSED, old_text="a", new_text="b",
+        rationale="drafted",
+    )
+    plan = build_orchestration_plan([_finding(corrector_result=cr, validator_result=None)])
+    entry = plan.comment_entries[0]
+    assert entry.kind == "flagged_abstained"
+    assert "never validated" in entry.detail

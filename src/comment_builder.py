@@ -55,6 +55,7 @@ _KIND_HEADERS = {
 def build_final_comment(
     meaningful_count: int, comment_entries: list, error_count: int,
     pr_number: int = None, repo_full_name: str = None, cost_lines: list = None,
+    budget_truncated: bool = False,
 ) -> str:
     """Milestone 4's complete summary comment, built from an
     output_orchestrator.OrchestrationPlan's comment_entries — supersedes
@@ -76,6 +77,13 @@ def build_final_comment(
     Milestone 6, Thread 2: cost_lines (from cost_tracking.format_cost_comment_lines)
     is optional — omit it for callers that don't need cost reporting (e.g.
     existing tests of this function's core format).
+
+    budget_truncated (Architecture Section 4's max_llm_calls_per_run
+    circuit breaker, llm_call_budget.py): when True, this run stopped
+    early because it hit its LLM call ceiling. Surfaced explicitly rather
+    than left implicit -- a shorter-than-expected finding list must never
+    look like "nothing else was stale," per the same honesty standard as
+    every other truncation/abstention/error state this pipeline reports.
     """
     stale_kinds = {"flagged_low_confidence", "flagged_abstained", "flagged_rejected", "correction_ready"}
     stale_count = sum(1 for e in comment_entries if e.kind in stale_kinds)
@@ -93,6 +101,13 @@ def build_final_comment(
         lines.append(f"- Checks that could not complete: **{error_count}** (see logs)")
     if cost_lines:
         lines.extend(cost_lines)
+    if budget_truncated:
+        lines.append(
+            "- ⚠️ **This run hit its LLM call budget (`max_llm_calls_per_run`) "
+            "and stopped early — some meaningful changes with a known doc link "
+            "may not have been checked.** Increase the limit or re-run to cover "
+            "the rest."
+        )
     lines.append("")
 
     if not comment_entries:

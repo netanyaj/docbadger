@@ -29,6 +29,7 @@ from validator import validate_correction
 from output_orchestrator import PipelineFinding, build_orchestration_plan
 from comment_builder import build_final_comment
 from cost_tracking import RunCostSummary, format_cost_comment_lines, append_run_and_get_cumulative
+from llm_call_budget import LLMCallBudget, parse_max_calls
 
 
 def _fail(message: str) -> None:
@@ -98,9 +99,19 @@ def main():
 
     findings = []  # list of PipelineFinding
     cost_summary = RunCostSummary(model=model)
+    budget = LLMCallBudget(parse_max_calls(os.environ.get("MAX_LLM_CALLS_PER_RUN", "")))
+
     for fn in meaningful:
+        if budget.truncated:
+            break
         linked_section_ids = get_linked_doc_sections(fn.qualified_id, index)
         for section_id in linked_section_ids:
+            if not budget.try_consume():
+                # Circuit breaker tripped: stop evaluating entirely, don't
+                # just skip this one pair. Everything from here on is
+                # reported as truncated in the summary comment, never
+                # silently dropped.
+                break
             section = index["doc_sections"][section_id]
             verdict = judge_staleness(fn.old_code, fn.new_code, section.text, model)
             cost_summary.add("verifier", verdict["usage"])
@@ -132,6 +143,23 @@ def main():
                 ))
                 continue
 
+            if not budget.try_consume():
+                # Verifier already ran for this pair (that call was already
+                # spent and can't be un-spent); the Corrector call it would
+                # normally trigger is what gets cut off. This pair still
+                # shows up as a stale/Medium-or-High-tier finding below,
+                # just without a drafted correction -- same shape as a
+                # Low-tier skip (Entry 23), for a different reason.
+                findings.append(PipelineFinding(
+                    filepath=section.filepath,
+                    qualified_id=fn.qualified_id,
+                    heading_path=section.heading_path,
+                    stale=True,
+                    diagnosis=verdict["diagnosis"],
+                    tier=confidence.tier,
+                ))
+                break
+
             corrector_result = generate_correction(
                 diagnosis=verdict["diagnosis"],
                 new_code=fn.new_code,
@@ -142,6 +170,23 @@ def main():
 
             validator_result = None
             if corrector_result.status == CorrectionStatus.PROPOSED:
+                if not budget.try_consume():
+                    # Corrector proposed a real fix but the budget ran out
+                    # right before the independent Validator check -- never
+                    # show an unvalidated correction as ready-to-apply, so
+                    # this is recorded as an abstained/unready finding, not
+                    # silently promoted past the quality gate it needs.
+                    findings.append(PipelineFinding(
+                        filepath=section.filepath,
+                        qualified_id=fn.qualified_id,
+                        heading_path=section.heading_path,
+                        stale=True,
+                        diagnosis=verdict["diagnosis"],
+                        tier=confidence.tier,
+                        corrector_result=corrector_result,
+                        validator_result=None,
+                    ))
+                    break
                 validator_result = validate_correction(
                     new_code=fn.new_code,
                     doc_section=section.text,
@@ -187,7 +232,7 @@ def main():
     comment_body = build_final_comment(
         len(meaningful), plan.comment_entries, error_count,
         pr_number=pr_number, repo_full_name=repo_full_name,
-        cost_lines=cost_lines,
+        cost_lines=cost_lines, budget_truncated=budget.truncated,
     )
     print(comment_body)
 
