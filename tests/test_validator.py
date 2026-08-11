@@ -177,7 +177,7 @@ def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
 
     system, user = _build_prompts(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, "golden-test-nonce-0000")
     assert PROMPT_VERSION == "validator-v2"
-    assert hash_prompt_pair(system, user) == "REPLACE_WITH_REAL_COMPUTED_HASH_AFTER_RUNNING_LOCALLY"
+    assert hash_prompt_pair(system, user) == "78864c9f05d959fcf080328a687253349666b5ee0e44ba7684b9399748faa6b2"
 
 
 def test_prompt_explicitly_states_old_text_is_expected_to_differ_from_new_code():
