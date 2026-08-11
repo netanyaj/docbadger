@@ -46,7 +46,17 @@ from cost_tracking import usage_from_response, TokenUsage
 # Architecture Section 16: prompt versioning is mandatory. Bump any time
 # _build_prompts's content changes -- test_validator.py's golden hash test
 # fails loudly if the prompt text changes without a matching bump.
-PROMPT_VERSION = "validator-v1"
+#
+# v2 (Engineering Decision Log Entry 94/96): fixes a real, reproducible false
+# rejection found in production. The Validator rejected an objectively
+# correct correction with: "the proposed new text ... is accurate according
+# to the new code. However, the original code snippet does not match the new
+# code's parameter name, leading to a discrepancy in accuracy." That's a
+# conflation the v1 prompt never explicitly ruled out -- old_text is BY
+# DEFINITION the outdated text being replaced, so of course it disagrees with
+# new_code; that disagreement is the reason the correction exists, not a
+# defect in it. v2 states this explicitly rather than leaving it implicit.
+PROMPT_VERSION = "validator-v2"
 
 
 class ValidationStatus(str, Enum):
@@ -88,6 +98,14 @@ You will be shown:
 3. {old_tag} — the exact span of the original section a Corrector stage
    wants to replace.
 4. {new_tag} — what it wants to replace that span with.
+
+Important: {old_tag} is the OUTDATED text being replaced. By definition it
+describes the code as it used to be, not as it is now, so it is expected and
+correct for {old_tag} to disagree with {code_tag} — that disagreement is the
+entire reason a correction exists in the first place. Never reject a
+correction because {old_tag} does not match {code_tag}; that comparison is
+irrelevant to your job. Judge accuracy by checking {new_tag} against
+{code_tag} only.
 
 Assess two independent things:
 - ACCURACY: does the proposed new text correctly and completely describe what

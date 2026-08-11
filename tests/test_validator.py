@@ -153,7 +153,7 @@ def test_prompt_version_present_on_result():
     from validator import ValidatorResult, ValidationStatus
 
     result = ValidatorResult(status=ValidationStatus.REJECTED_STRUCTURAL, old_text="a", new_text="b", rationale="r")
-    assert result.prompt_version == "validator-v1"
+    assert result.prompt_version == "validator-v2"
 
 
 def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
@@ -161,10 +161,34 @@ def test_golden_hash_fails_if_prompt_text_changes_without_a_version_bump():
     nonce -> deterministic render -> hashed -> compared against a stored
     value. A failure means the prompt text changed; bump PROMPT_VERSION in
     validator.py and update the expected hash to match.
+
+    v2 note (Engineering Decision Log Entry 94/96): the prompt text changed
+    (a new paragraph clarifying old_text is expected to disagree with
+    new_code -- fixing a real false-rejection bug found in production), so
+    this hash is necessarily different from v1's. The exact value below is
+    NOT independently computed here -- it wasn't regenerated against the
+    real prompt_delimiters.py (not present in this sandbox), so run this
+    test for real after applying the fix and paste the actual computed hash
+    from the assertion failure in place of the placeholder below before
+    treating this test as passing. Do not trust this placeholder as correct.
     """
     from validator import _build_prompts, PROMPT_VERSION
     from prompt_versioning import hash_prompt_pair
 
     system, user = _build_prompts(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, "golden-test-nonce-0000")
-    assert PROMPT_VERSION == "validator-v1"
-    assert hash_prompt_pair(system, user) == "c3c6150b13384015c9384ff193bb6b89fa3bb79a01d770c5d7caf370c7710bc8"
+    assert PROMPT_VERSION == "validator-v2"
+    assert hash_prompt_pair(system, user) == "REPLACE_WITH_REAL_COMPUTED_HASH_AFTER_RUNNING_LOCALLY"
+
+
+def test_prompt_explicitly_states_old_text_is_expected_to_differ_from_new_code():
+    """Regression test for the real production bug (Engineering Decision Log
+    Entry 94/96): the Validator once rejected an objectively correct
+    correction because old_text didn't match new_code -- an expected,
+    by-definition mismatch, not a defect. Guards against a future prompt
+    edit silently dropping this clarification and reintroducing the bug.
+    """
+    from validator import _build_prompts
+
+    system, _ = _build_prompts(NEW_CODE, DOC_SECTION, OLD_TEXT, NEW_TEXT, "nonce")
+    assert "expected and correct" in system
+    assert "Never reject a correction because" in system
