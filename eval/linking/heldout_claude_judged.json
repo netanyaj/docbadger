@@ -1,0 +1,1188 @@
+{
+ "judge": "Claude, applying DocBadger verifier-v1 criteria by hand, blind to arm (shuffled IDs across 3 PRs)",
+ "prs": {
+  "67b2b22": {
+   "pr": 1032,
+   "sha": "67b2b22a1cb17062d652eaae4303ab5fa94faa26",
+   "v1": {
+    "pairs": 51,
+    "stale": 0,
+    "incomplete": []
+   },
+   "graph": {
+    "pairs": 31,
+    "stale": 0,
+    "incomplete": [
+     "H005",
+     "H024",
+     "H080",
+     "H092"
+    ]
+   }
+  },
+  "cd207a2": {
+   "pr": 976,
+   "sha": "cd207a2944477e6a3cc0111888f7efa6a2c829b6",
+   "v1": {
+    "pairs": 13,
+    "stale": 0,
+    "incomplete": []
+   },
+   "graph": {
+    "pairs": 8,
+    "stale": 0,
+    "incomplete": []
+   }
+  },
+  "a84863d": {
+   "pr": 985,
+   "sha": "a84863def84bf71807a8a6f15bd7017905901bb0",
+   "v1": {
+    "pairs": 48,
+    "stale": 0,
+    "incomplete": [
+     "H049",
+     "H132"
+    ]
+   },
+   "graph": {
+    "pairs": 38,
+    "stale": 0,
+    "incomplete": [
+     "H049",
+     "H132"
+    ]
+   }
+  }
+ },
+ "verdicts": [
+  {
+   "id": "H000",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.inspection",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H001",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Metrics",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H002",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "potpie/cli/templates/claude_plugin/skills/potpie-graph/SKILL.md::Potpie Graph Workbench > 2. Read - `graph read --subgraph --view`",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H003",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_workbench_ontology.py::describe_contract",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H004",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/claim_query_analytics.py::ClaimQueryAnalytics.repair",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H005",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::_normalize_quality_report",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 11. Quality scoring (diagnostic only)",
+   "stale": false,
+   "reason": "INCOMPLETE: Incomplete, not contradicted: new report alias entity-label-drift is not in the documented list; verifier-v1 rules lean not stale."
+  },
+  {
+   "id": "H006",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/telemetry/sentry.md::Context-Engine CLI Sentry Telemetry",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H007",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 8. Pre-apply validation / soft-fail downgrade",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H008",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > CLI surfaces onto one data plane",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H009",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H010",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/falkordb_inspection.py::FalkorDBInspection.__init__",
+   "section": "docs/sandbox-integration-plan.md::Sandbox Integration Plan",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H011",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "potpie/context-engine/benchmarks/README.md::--- Authoring --- > Concurrency & progress",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H012",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/config_service.py::LocalConfigService.write_defaults",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Component Lifecycle & Setup > Setup sequence",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H013",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/claim_query_analytics.py::ClaimQueryAnalytics.repair",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H014",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H015",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_views.py::_check_views_coherent",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H016",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.analytics",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H017",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H018",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H019",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H020",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::_Analytics.repair",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H021",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/envelope_builder.py::EnvelopeBuilder.build",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph > 2. The single read trunk (P8/P9)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H022",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_workbench_ontology.py::describe_contract",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 7. The executable workbench contract > 7.3 describe & rank",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H023",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/envelope_builder.py::EnvelopeBuilder.build",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H024",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::_quality_deep_report",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "INCOMPLETE: Incomplete, not contradicted: new entity-label-drift report not documented."
+  },
+  {
+   "id": "H025",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Shared plumbing (`commands/_common.py`)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H026",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/sandbox-core-setup.md::app/modules/sandbox/port.py > Concurrency and Locking",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H027",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/config_service.py::LocalConfigService.write_defaults",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H028",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H029",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.analytics",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H030",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/agent_envelope.py::AgentEnvelope.to_dict",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H031",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "potpie/context-engine/scripts/BENCHMARK.md::Or via the convenience wrapper",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H032",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H033",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/skills.md::Skills & Harness-Led Intelligence",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H034",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::_Analytics.repair",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H035",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Graph workbench (`commands/graph.py`) \u2014 the core surface",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H036",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H037",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 11. Quality scoring (diagnostic only)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H038",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Two altitudes onto one data plane",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H039",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::_read_result_from_envelope",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H040",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.analytics",
+   "section": "docs/context-graph/README.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H041",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/telemetry/sentry.md::Context-Engine CLI Sentry Telemetry",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H042",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H043",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::_read_result_from_envelope",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph > 7. The 3-axis query model (all three shipped)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H044",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Metrics",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H045",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H046",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Shared plumbing (`commands/_common.py`)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H047",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_workbench_ontology.py::describe_contract",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H048",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Command groups & code slots",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H049",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_views.py::_check_views_coherent",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 10. Coherence guards",
+   "stale": false,
+   "reason": "INCOMPLETE: Incomplete, not contradicted: new coherence assertions not described."
+  },
+  {
+   "id": "H050",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H051",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H052",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/claim_query_analytics.py::ClaimQueryAnalytics.repair",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H053",
+   "pr": 976,
+   "chunk": "potpie/context-engine/adapters/outbound/intelligence/local_embedder.py::build_embedder",
+   "section": "docs/context-graph/architecture.md::domain/lifecycle.py \u2014 shared value objects",
+   "stale": false,
+   "reason": "Unrelated to SetupPlan listing; not contradicted."
+  },
+  {
+   "id": "H054",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 1. The tiered write stack",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H055",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/modules/intelligence/tools/confluence_tools/README.md::Reply to comment > Architecture > Tool Layer",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H056",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/agent_envelope.py::AgentEnvelope.to_dict",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H057",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H058",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/falkordb_inspection.py::FalkorDBInspection.__init__",
+   "section": "docs/sandbox-integration-plan.md::Sandbox Integration Plan > 7. Agent tool exports > 7.3 How tools resolve the workspace",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H059",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H060",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.analytics",
+   "section": "docs/context-graph/README.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H061",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door > See also",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H062",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H063",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/entity_canonicalization.py::canonicalize_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H064",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 7. The executable workbench contract > 7.1 Subgraphs \u2014 8",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H065",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H066",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H067",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::_ensure_required_properties_for_label",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 8. Pre-apply validation / soft-fail downgrade",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H068",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door > Output contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H069",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.inspection",
+   "section": "docs/context-graph/README.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H070",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/telemetry/sentry.md::Context-Engine CLI Sentry Telemetry > Captured Errors",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H071",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/config_service.py::LocalConfigService.write_defaults",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Component Lifecycle & Setup > Seam \u2192 owner map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H072",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.inspection",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H073",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 7. The single backend write door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H074",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/config_service.py::LocalConfigService.write_defaults",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Component Lifecycle & Setup",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H075",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H076",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H077",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/agent_envelope.py::AgentEnvelope.to_dict",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The write door (high level)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H078",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/falkordb_inspection.py::FalkorDBInspection.slice",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H079",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H080",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::_quality_deep_report",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 11. Quality scoring (diagnostic only)",
+   "stale": false,
+   "reason": "INCOMPLETE: new entity-label-drift report missing from the documented report list; not contradicted, so not stale under verifier-v1 rules."
+  },
+  {
+   "id": "H081",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "potpie/cli/templates/claude_plugin/skills/potpie-graph/SKILL.md::Potpie Graph Workbench",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H082",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/sandbox-core-setup.md::app/modules/sandbox/port.py",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H083",
+   "pr": 976,
+   "chunk": "potpie/context-engine/adapters/outbound/intelligence/local_embedder.py::build_embedder",
+   "section": "docs/context-graph/architecture.md::domain/lifecycle.py \u2014 shared value objects > Code Map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H084",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.inspection",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H085",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "potpie/context-engine/scripts/BENCHMARK.md::Or via the convenience wrapper > Scenarios",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H086",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_workbench_ontology.py::describe_contract",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 7. The executable workbench contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H087",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.analytics",
+   "section": "docs/context-graph/README.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H088",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/reconciliation_validation.py::validate_reconciliation_plan",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The shared engine room",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H089",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H090",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::_ensure_required_properties_for_label",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H091",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/falkordb_inspection.py::FalkorDBInspection.__init__",
+   "section": "docs/sandbox-integration-plan.md::Sandbox Integration Plan > 7. Agent tool exports",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H092",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::_normalize_quality_report",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "INCOMPLETE: new entity-label-drift report alias not documented; not contradicted."
+  },
+  {
+   "id": "H093",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph > 7. The 3-axis query model (all three shipped)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H094",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/skills.md::Skills & Harness-Led Intelligence > 4. `potpie-graph` v5 \u2014 the taught read/write loop",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H095",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/falkordb_inspection.py::FalkorDBInspection.slice",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H096",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 7. The executable workbench contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H097",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/celery/CELERY_ASYNC_SYNC_RULES.md::Celery tasks: async/sync and DB usage rules",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H098",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::_Analytics.repair",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H099",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/claim_query_analytics.py::ClaimQueryAnalytics.repair",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H100",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.analytics",
+   "section": "docs/context-graph/README.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H101",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/telemetry/sentry.md::Context-Engine CLI Sentry Telemetry > Captured Errors",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H102",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::enrich_reconciliation_plan_entity_labels",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H103",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H104",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H105",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_views.py::_check_views_coherent",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H106",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::enrich_reconciliation_plan_entity_labels",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 7. The single backend write door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H107",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/entity_canonicalization.py::canonicalize_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 7. The single backend write door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H108",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/entity_canonicalization.py::canonicalize_reconciliation_plan",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 8. Pre-apply validation / soft-fail downgrade",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H109",
+   "pr": 976,
+   "chunk": "potpie/context-engine/adapters/outbound/intelligence/local_embedder.py::build_embedder",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H110",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H111",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::_ensure_required_properties_for_label",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 7. The single backend write door",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H112",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/modules/intelligence/tools/confluence_tools/README.md::Reply to comment > Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H113",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Graph workbench (`commands/graph.py`) \u2014 the core surface",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H114",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Metrics",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H115",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/modules/intelligence/tools/confluence_tools/README.md::Reply to comment",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H116",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::fail",
+   "section": "docs/context-graph/cli-flow.md::Potpie CLI Flow & Command Reference > Graph workbench (`commands/graph.py`) \u2014 the core surface",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H117",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "potpie/context-engine/benchmarks/README.md::--- Authoring --- > Operational commands explained",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H118",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::_Analytics.repair",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract > 9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H119",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.inspection",
+   "section": "docs/context-graph/README.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H120",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/celery/CELERY_ASYNC_SYNC_RULES.md::Celery tasks: async/sync and DB usage rules > Rules (enforced by convention + BaseTask docstring)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H121",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/canonical_label_inference.py::enrich_reconciliation_plan_entity_labels",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 8. Pre-apply validation / soft-fail downgrade",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H122",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "potpie/context-engine/benchmarks/README.md::--- Authoring ---",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H123",
+   "pr": 985,
+   "chunk": "potpie/context-engine/adapters/inbound/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door > Output contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H124",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/ingestion-nudge.md::Ingestion, the Event Ledger(s) & the Nudge Trigger Model",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H125",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.catalog",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Two altitudes onto one data plane",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H126",
+   "pr": 976,
+   "chunk": "potpie/context-engine/adapters/outbound/intelligence/local_embedder.py::build_embedder",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > Component Lifecycle & Setup",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H127",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H128",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "potpie/context-engine/scripts/BENCHMARK.md::Or via the convenience wrapper > Scenarios > Core assertions",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H129",
+   "pr": 976,
+   "chunk": "potpie/context-engine/application/services/setup_orchestrator.py::DefaultSetupOrchestrator.run",
+   "section": "legacy/app/celery/CELERY_ASYNC_SYNC_RULES.md::Celery tasks: async/sync and DB usage rules > Why this matters",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H130",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/ingestion-nudge.md::Ingestion, the Event Ledger(s) & the Nudge Trigger Model > 7. The zero-token \"nudge\" trigger model",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H131",
+   "pr": 1032,
+   "chunk": "potpie/context-core/src/potpie_context_core/workbench_service.py::GraphWorkbenchService.quality",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H132",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_views.py::_check_views_coherent",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph > 8. Named views & `GraphViewSpec`",
+   "stale": false,
+   "reason": "INCOMPLETE: guard now also checks 1:1 include-to-view mapping and reader-backed includes; doc lists only the first check."
+  },
+  {
+   "id": "H133",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H134",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/agent_envelope.py::AgentEnvelope.to_dict",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 5. Spine A \u2014 propose \u2192 commit (the canonical door) > 5.3 The diff shape",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H135",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.analytics",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H136",
+   "pr": 1032,
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.analytics",
+   "section": "docs/context-graph/architecture.md::Context Graph Architecture > The `GraphBackend` port",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H137",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/agent_envelope.py::AgentEnvelope.to_dict",
+   "section": "docs/context-graph/writing.md::Writing the Context Graph > 5. Spine A \u2014 propose \u2192 commit (the canonical door)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H138",
+   "pr": 985,
+   "chunk": "potpie/context-engine/domain/graph_workbench_ontology.py::describe_contract",
+   "section": "docs/context-graph/querying.md::Querying / Reading the Context Graph > 9. Read CLI commands (summary)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H139",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/ontology.md::Ontology & Graph Contract",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  },
+  {
+   "id": "H140",
+   "pr": 985,
+   "chunk": "potpie/context-engine/application/services/graph_service.py::DefaultGraphService.read",
+   "section": "docs/context-graph/ingestion-nudge.md::Ingestion, the Event Ledger(s) & the Nudge Trigger Model > 7. The zero-token \"nudge\" trigger model > 7.2 Executor (`application/services/nudge_service.py NudgeService`)",
+   "stale": false,
+   "reason": "Unrelated or still accurate."
+  }
+ ]
+}
