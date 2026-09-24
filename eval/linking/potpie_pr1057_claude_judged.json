@@ -1,0 +1,749 @@
+{
+ "judge": "Claude (claude-opus-5-5) applying DocBadger's verifier-v1 criteria by hand, blind to which arm each pair came from (pairs shuffled, arm labels hidden)",
+ "caveats": [
+  "Not GPT-4o: production Verifier model differs",
+  "Ranker fix D15 was made after seeing v1-arm verdicts on this same PR, so graph-arm numbers are not held-out",
+  "Single PR"
+ ],
+ "budget": 50,
+ "arms": {
+  "v1": {
+   "pairs": 96,
+   "stale_pairs": 18,
+   "stale_within_budget": 15,
+   "distinct_stale_sections": [
+    "docs/context-graph/architecture.md::Extension points",
+    "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+    "docs/context-graph/architecture.md::The `GraphBackend` port"
+   ],
+   "precision": 0.188
+  },
+  "graph": {
+   "pairs": 48,
+   "stale_pairs": 17,
+   "stale_within_budget": 17,
+   "distinct_stale_sections": [
+    "docs/context-graph/architecture.md::Extension points",
+    "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+    "docs/context-graph/architecture.md::The `GraphBackend` port"
+   ],
+   "precision": 0.354
+  }
+ },
+ "verdicts": [
+  {
+   "id": "P000",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult; new signature is provision() -> BackendProvisionResult."
+  },
+  {
+   "id": "P001",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "Same signature claim in the GraphBackend port section is contradicted by provision() -> BackendProvisionResult."
+  },
+  {
+   "id": "P002",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "potpie/cli/templates/claude_plugin/README.md::Potpie plugin for Claude Code > What it does",
+   "stale": false,
+   "reason": "Hook/nudge table unrelated to daemon stop logic."
+  },
+  {
+   "id": "P003",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/sandbox-core-setup.md::Current State (Implemented)",
+   "stale": false,
+   "reason": "Sandbox layout section unrelated to daemon status."
+  },
+  {
+   "id": "P004",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Trace Map claims spans from daemon/main.py; this status() diff alone does not contradict it (the real cause is the deleted file)."
+  },
+  {
+   "id": "P005",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "docs/context-graph/skills.md::5. The Claude Code plugin (hooks + slash commands)",
+   "stale": false,
+   "reason": "Plugin hooks section unrelated."
+  },
+  {
+   "id": "P006",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Code map lists paths only; provision signature not described."
+  },
+  {
+   "id": "P007",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/context-engine/src/potpie_context_engine/core/playbooks/repo_one_shot_ingestion.md::Repo change-history ingestion (one-shot) > Tools assumed available",
+   "stale": false,
+   "reason": "Tool list unrelated."
+  },
+  {
+   "id": "P008",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/querying.md::9. Read CLI commands (summary)",
+   "stale": false,
+   "reason": "Read CLI summary unrelated."
+  },
+  {
+   "id": "P009",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::Shared plumbing (`commands/_common.py`)",
+   "stale": false,
+   "reason": "New EngineClientError handling maps into the same documented exit-code table; doc still accurate."
+  },
+  {
+   "id": "P010",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Stable interfaces names provision() without signature; still accurate."
+  },
+  {
+   "id": "P011",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::Graph workbench (`commands/graph.py`) \u2014 the core surface",
+   "stale": false,
+   "reason": "Workbench section still accurate."
+  },
+  {
+   "id": "P012",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Stable interfaces still accurate."
+  },
+  {
+   "id": "P013",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/cli-flow.md::Command groups & code slots",
+   "stale": false,
+   "reason": "Command groups table unrelated."
+  },
+  {
+   "id": "P014",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Setup doc says backends provision via provision(plan: SetupPlan) -> StepResult reporting done|skipped|...; now returns BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P015",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points table says a provision method should Return a StepResult; provision now returns BackendProvisionResult."
+  },
+  {
+   "id": "P016",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Coverage table unaffected."
+  },
+  {
+   "id": "P017",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Vocabulary mentions provision() without signature."
+  },
+  {
+   "id": "P018",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Metrics",
+   "stale": false,
+   "reason": "Metrics unrelated."
+  },
+  {
+   "id": "P019",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/ontology.md::9. Workbench envelope & command sets",
+   "stale": false,
+   "reason": "Envelope unrelated."
+  },
+  {
+   "id": "P020",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Code map unaffected."
+  },
+  {
+   "id": "P021",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door",
+   "stale": false,
+   "reason": "Error fields and exit codes still match."
+  },
+  {
+   "id": "P022",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "GraphBackend port section states provision(plan: SetupPlan) -> StepResult; contradicted."
+  },
+  {
+   "id": "P023",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Stable interfaces still accurate."
+  },
+  {
+   "id": "P024",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Stable interfaces still accurate."
+  },
+  {
+   "id": "P025",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Stable interfaces still accurate."
+  },
+  {
+   "id": "P026",
+   "chunk": "potpie/cli/commands/graph.py::_graph_command",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Logging config unrelated to exit-result marking."
+  },
+  {
+   "id": "P027",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult / done|skipped|failed states; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P028",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult / done|skipped|failed states; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P029",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "docs/context-graph/ingestion-nudge.md::7. The zero-token \"nudge\" trigger model",
+   "stale": false,
+   "reason": "Nudge policy unrelated."
+  },
+  {
+   "id": "P030",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Coverage table unaffected."
+  },
+  {
+   "id": "P031",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.health",
+   "section": "docs/context-graph/architecture.md::Two ledgers: the live event store vs the external seam",
+   "stale": false,
+   "reason": "Ledger section unrelated to health()."
+  },
+  {
+   "id": "P032",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Coverage table unaffected."
+  },
+  {
+   "id": "P033",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/nudge.py::_check_nudge_policies_coherent",
+   "section": "docs/context-graph/ingestion-nudge.md::7. The zero-token \"nudge\" trigger model > 7.1 Policy (`domain/nudge.py`)",
+   "stale": false,
+   "reason": "Only a docstring path changed; doc still accurate."
+  },
+  {
+   "id": "P034",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/cli/README.md::Potpie CLI (`potpie`) > Agent compatibility commands",
+   "stale": false,
+   "reason": "Compat commands unrelated."
+  },
+  {
+   "id": "P035",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "potpie/cli/templates/claude_plugin/README.md::Potpie plugin for Claude Code",
+   "stale": false,
+   "reason": "Plugin README unrelated."
+  },
+  {
+   "id": "P036",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Install section unaffected."
+  },
+  {
+   "id": "P037",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/context-engine/src/potpie_context_engine/core/playbooks/repo_one_shot_ingestion.md::Repo change-history ingestion (one-shot) > Procedure > Phase 2 \u2014 Drain batches",
+   "stale": false,
+   "reason": "Ingestion playbook unrelated."
+  },
+  {
+   "id": "P038",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/bootstrap/ingestion_server.py::build_ingestion_server",
+   "section": "potpie/context-engine/tests/integration/e2e_surface.md::Context Engine \u2014 end-to-end integration test surface > Fixtures (conftest.py)",
+   "stale": false,
+   "reason": "Fixtures doc unaffected by import path change."
+  },
+  {
+   "id": "P039",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Code map unaffected."
+  },
+  {
+   "id": "P040",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Vocabulary unaffected."
+  },
+  {
+   "id": "P041",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/cli/README.md::Potpie CLI (`potpie`)",
+   "stale": false,
+   "reason": "CLI README unaffected."
+  },
+  {
+   "id": "P042",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Coverage table unaffected."
+  },
+  {
+   "id": "P043",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Code map unaffected."
+  },
+  {
+   "id": "P044",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points says a provision method should return a StepResult; it now returns BackendProvisionResult."
+  },
+  {
+   "id": "P045",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Code map unaffected."
+  },
+  {
+   "id": "P046",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult / done|skipped|failed states; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P047",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/cli-flow.md::resolve identity, then write through the canonical door > Output contract",
+   "stale": false,
+   "reason": "Output contract still accurate."
+  },
+  {
+   "id": "P048",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/bootstrap/ingestion_server.py::build_ingestion_server",
+   "section": "potpie/context-engine/tests/integration/e2e_surface.md::Context Engine \u2014 end-to-end integration test surface",
+   "stale": false,
+   "reason": "E2E doc unaffected by import path change."
+  },
+  {
+   "id": "P049",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/sandbox-integration-plan.md::7. Agent tool exports > 7.1 Tool catalog (proposal)",
+   "stale": false,
+   "reason": "Sandbox tool proposal unrelated."
+  },
+  {
+   "id": "P050",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::_Neo4jMutation.invalidate",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": false,
+   "reason": "invalidate still listed and still raises; only import path changed."
+  },
+  {
+   "id": "P051",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points says a provision method should return a StepResult; it now returns BackendProvisionResult."
+  },
+  {
+   "id": "P052",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/nudge.py::_check_nudge_policies_coherent",
+   "section": "docs/context-graph/ingestion-nudge.md::7. The zero-token \"nudge\" trigger model",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P053",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points says a provision method should return a StepResult; it now returns BackendProvisionResult."
+  },
+  {
+   "id": "P054",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/context-engine/src/potpie_context_engine/core/playbooks/repo_one_shot_ingestion.md::Repo change-history ingestion (one-shot) > Procedure > Phase 2 \u2014 Drain batches > PR items",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P055",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult / done|skipped|failed states; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P056",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P057",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P058",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.health",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P059",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/ontology.md::Overview",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P060",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P061",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P062",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P063",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points says a provision method should return a StepResult; it now returns BackendProvisionResult."
+  },
+  {
+   "id": "P064",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P065",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P066",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/skills.md::2. Installation, targets & drift (`DefaultSkillManager`)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P067",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P068",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult / done|skipped|failed states; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P069",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P070",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/cli-flow.md::Top-level commands",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P071",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "docs/context-graph/ingestion-nudge.md::7. The zero-token \"nudge\" trigger model > 7.1 Policy (`domain/nudge.py`)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P072",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.stop",
+   "section": "docs/context-graph/skills.md::5. The Claude Code plugin (hooks + slash commands) > Five model-free lifecycle hooks",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P073",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/architecture.md::CLI surfaces onto one data plane",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P074",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Readiness",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P075",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/context-engine/src/potpie_context_engine/core/playbooks/repo_one_shot_ingestion.md::Repo change-history ingestion (one-shot) > Procedure",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P076",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P077",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Extension points",
+   "stale": true,
+   "reason": "Extension points says a provision method should return a StepResult; it now returns BackendProvisionResult."
+  },
+  {
+   "id": "P078",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.health",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Borderline: health() no longer probes the daemon /health endpoint, but the diff alone does not prove the daemon.health span is gone (true cause: deleted daemon/main.py)."
+  },
+  {
+   "id": "P079",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "potpie/context-engine/src/potpie_context_engine/core/playbooks/repo_one_shot_ingestion.md::Repo change-history ingestion (one-shot)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P080",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie > Vocabulary",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P081",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.health",
+   "section": "docs/context-graph/ingestion-nudge.md::6. The external Event Ledger + cursors",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P082",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/sandbox-integration-plan.md::7. Agent tool exports",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P083",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/in_memory_backend.py::InMemoryGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Code map > Stable interfaces",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P084",
+   "chunk": "potpie/cli/commands/_common.py::resolve_pot_scope",
+   "section": "docs/context-graph/cli-flow.md::Shared plumbing (`commands/_common.py`)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P085",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P086",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/ledger/cursor_store.py::LocalLedgerCursorStore.set",
+   "section": "docs/async-migration-plan.md::Step 3: Async Redis for non-streaming services \u2705",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P087",
+   "chunk": "potpie/cli/commands/graph.py::_graph_command",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink) > Trace Map",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P088",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/context-graph/observability.md::Logging (independent of the trace/metric sink)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P089",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/falkordb_backend.py::FalkorDBGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P090",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/domain/ports/provisioning.py::ProvisionableGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P091",
+   "chunk": "potpie/cli/commands/_common.py::resolve_pot_scope",
+   "section": "docs/context-graph/cli-flow.md::Pots & sources (`commands/pots.py` \u2192 `host.pots`)",
+   "stale": false,
+   "reason": "Borderline: heading says commands/pots.py -> host.pots; code now calls get_pot_service(host). Minor, leaning not stale."
+  },
+  {
+   "id": "P092",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/architecture.md::The daemon model",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P093",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::_Neo4jMutation.invalidate",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port > Backend coverage \u2014 real capabilities per profile",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P094",
+   "chunk": "potpie/context-engine/scripts/generate_agent_contract.py::emit",
+   "section": "docs/context-graph/cli-flow.md::Shared plumbing (`commands/_common.py`)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P095",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.ensure",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P096",
+   "chunk": "potpie/cli/commands/graph.py::_graph_command",
+   "section": "docs/context-graph/cli-flow.md::Graph workbench (`commands/graph.py`) \u2014 the core surface",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P097",
+   "chunk": "potpie/cli/commands/_common.py::contract",
+   "section": "docs/telemetry/sentry.md::Captured Errors",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P098",
+   "chunk": "potpie/daemon/lifecycle.py::Daemon.status",
+   "section": "docs/context-graph/querying.md::1. One CLI, one data plane",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P099",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/stub_backend.py::StubGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::Setup & provisioning (orientation)",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  },
+  {
+   "id": "P100",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/embedded_backend.py::EmbeddedGraphBackend.provision",
+   "section": "docs/context-graph/index.md::or: pip install potpie",
+   "stale": false,
+   "reason": "Section unrelated to or still accurate for this change."
+  },
+  {
+   "id": "P101",
+   "chunk": "potpie/context-engine/src/potpie_context_engine/adapters/outbound/graph/backends/neo4j_backend.py::Neo4jGraphBackend.provision",
+   "section": "docs/context-graph/architecture.md::The `GraphBackend` port",
+   "stale": true,
+   "reason": "Doc states provision(plan: SetupPlan) -> StepResult; provision is now provision() -> BackendProvisionResult(ok=bool)."
+  }
+ ]
+}

@@ -41,7 +41,7 @@ from change_filter import filter_meaningful  # noqa: E402
 from code_parser import get_all_code_chunks  # noqa: E402
 from doc_parser import get_all_doc_sections  # noqa: E402
 from heuristic_linker import build_heuristic_links_with_source  # noqa: E402
-from graph_ranker import build_call_graph, rank_candidates  # noqa: E402
+from graph_ranker import build_call_graph, rank_candidates, diff_tokens  # noqa: E402
 from verifier import judge_staleness  # noqa: E402
 
 
@@ -53,7 +53,8 @@ def export(args):
     v1 = [[f.qualified_id, sid, src] for f in functions
           for sid, src in sorted(links.get(f.qualified_id, {}).items())]
     ranked = rank_candidates([f.qualified_id for f in functions], links, sections,
-                             build_call_graph("."))
+                             build_call_graph("."),
+                             {f.qualified_id: diff_tokens(f.old_code, f.new_code) for f in functions})
     graph_arm = [[p.chunk_id, p.section_id, p.source] for p in ranked]
     used = {c for c, _, _ in v1 + graph_arm}
     used_sections = {s for _, s, _ in v1 + graph_arm}

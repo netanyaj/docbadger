@@ -124,7 +124,20 @@ def _anchors(chunk_id: str) -> set:
     return {a for a in {qual, parts[-1], parts[0]} if _distinctive(a)} | {path}
 
 
-def _corroborated(chunk_id: str, section, graph: CallGraph) -> bool:
+IDENT = __import__("re").compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def diff_tokens(old_code: str, new_code: str) -> set:
+    """Distinctive identifiers that appear on only one side of a change:
+    names the change added or removed (e.g. a return type `StepResult`
+    replaced by `BackendProvisionResult`). A doc that mentions one of these
+    is about exactly what changed (Build Journal D15)."""
+    old = set(IDENT.findall(old_code or ""))
+    new = set(IDENT.findall(new_code or ""))
+    return {t for t in old ^ new if _distinctive(t)}
+
+
+def _corroborated(chunk_id: str, section, graph: CallGraph, changed_names: set = frozenset()) -> bool:
     """A leaf-name link counts only if the doc section ALSO names something
     distinctive tied to the changed function: its class, its file, or a
     graph neighbor (callers <=2 hops, callees 1 hop)."""
@@ -136,15 +149,19 @@ def _corroborated(chunk_id: str, section, graph: CallGraph) -> bool:
         own.add(qual.split(".")[0])  # the class, e.g. `GraphBackend`
     if own & tokens or any(path in m for m in mentions):
         return True
+    if changed_names & tokens:
+        return True  # the doc names something this change added or removed
     for neighbor in graph.neighborhood(chunk_id):
         if _anchors(neighbor) & tokens:
             return True
     return False
 
 
-def rank_candidates(changed_ids: list, links: dict, doc_sections: dict, graph) -> list:
+def rank_candidates(changed_ids: list, links: dict, doc_sections: dict, graph,
+                    changed_names: dict = None) -> list:
     """changed_ids: chunk ids of meaningfully-changed functions (v1 order).
     links: indexer's {chunk_id: {section_id: source_label}}.
+    changed_names: optional {chunk_id: diff_tokens(old, new)} for corroboration.
     Returns RankedPair list, highest score first; ties keep v1 order."""
     ranked: list[RankedPair] = []
     order = 0
@@ -155,7 +172,7 @@ def rank_candidates(changed_ids: list, links: dict, doc_sections: dict, graph) -
             if graph is None:
                 pair = RankedPair(cid, sid, src, SCORES.get(src, 0.5))
             elif src == "leaf":
-                if _corroborated(cid, doc_sections[sid], graph):
+                if _corroborated(cid, doc_sections[sid], graph, (changed_names or {}).get(cid, set())):
                     pair = RankedPair(cid, sid, "leaf_graph", SCORES["leaf_graph"])
                 else:
                     continue  # uncorroborated name collision: dropped

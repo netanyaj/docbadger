@@ -62,3 +62,18 @@ def test_no_parser_falls_back_to_v1_links_unchanged():
     links = {F: {"docs/a.md::A": "exact", "docs/c.md::C": "leaf"}}
     ranked = rank_candidates([F], links, sections, None)
     assert {(p.section_id, p.source) for p in ranked} == {("docs/a.md::A", "exact"), ("docs/c.md::C", "leaf")}
+
+
+def test_leaf_link_corroborated_by_names_the_change_added_or_removed():
+    # Mirrors potpie #1057: provision() changed its return type from
+    # StepResult to BackendProvisionResult. A doc that says "return a
+    # StepResult" is about exactly this change, even with no graph neighbor.
+    from graph_ranker import diff_tokens
+    old = "def provision(self, plan: SetupPlan) -> StepResult:\n    return StepResult(step='x')\n"
+    new = "def provision(self) -> BackendProvisionResult:\n    return BackendProvisionResult(ok=True)\n"
+    names = diff_tokens(old, new)
+    assert {"StepResult", "SetupPlan", "BackendProvisionResult"} <= names
+    sections = {"docs/arch.md::Extension points": sec("provision", "StepResult")}
+    links = {F: {"docs/arch.md::Extension points": "leaf"}}
+    ranked = rank_candidates([F], links, sections, graph(), {F: names})
+    assert [p.source for p in ranked] == ["leaf_graph"]
